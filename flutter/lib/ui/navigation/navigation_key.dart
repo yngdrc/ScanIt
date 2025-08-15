@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:scanit/ui/navigation/navigation_screen.dart';
 
-import '../camera/view_models/camera_view_model.dart';
 import '../camera/widgets/camera_screen.dart';
 
 enum NavigationKey {
@@ -26,7 +25,7 @@ extension NavigationKeyExtension on NavigationKey {
   NavigationScreen get screen {
     switch (this) {
       case NavigationKey.camera:
-        return CameraScreen(viewModel: CameraViewModel());
+        return CameraScreen();
     }
   }
 }
