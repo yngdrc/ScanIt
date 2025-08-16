@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:scanit/ui/navigation/navigation_key.dart';
+
+import '../../../navigation/navigation_key.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});

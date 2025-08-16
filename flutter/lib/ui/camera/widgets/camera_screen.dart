@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:scanit/ui/camera/view_model/CameraViewModel.dart';
 
-import '../../navigation/navigation_screen.dart';
+import '../../../navigation/navigation_screen.dart';
+
 
 class CameraScreen extends StatefulWidget implements NavigationScreen {
-  const CameraScreen({super.key});
+  const CameraScreen({super.key, required this.viewModel});
+
+  final CameraViewModel viewModel;
 
   @override
   State<CameraScreen> createState() => _CameraScreenState();

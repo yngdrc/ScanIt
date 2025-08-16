@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:scanit/ui/history/models/history_item.dart';
-import 'package:scanit/ui/navigation/navigation_screen.dart';
+
+import '../../../navigation/navigation_screen.dart';
+import '../../../domain/models/history/history_item.dart';
 
 class HistoryScreen extends StatefulWidget implements NavigationScreen {
   const HistoryScreen({super.key});

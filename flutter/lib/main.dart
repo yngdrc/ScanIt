@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:scanit/theme.dart';
+import 'package:scanit/ui/core/themes/theme.dart';
 import 'package:scanit/ui/main/widgets/main_screen.dart';
-import 'package:scanit/util.dart';
+import 'package:scanit/utils/util.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
