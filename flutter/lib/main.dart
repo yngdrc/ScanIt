@@ -1,10 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import 'package:scanit/data/repositories/history/history_repository_local.dart';
 import 'package:scanit/ui/core/themes/theme.dart';
 import 'package:scanit/ui/main/widgets/main_screen.dart';
 import 'package:scanit/utils/util.dart';
 
+import 'data/services/database_service.dart';
+
+void setupGetIt() {
+  final databaseService = DatabaseServiceImpl();
+  GetIt.instance.registerSingleton<DatabaseService>(databaseService);
+  GetIt.instance.registerSingleton<HistoryRepositoryLocal>(
+    HistoryRepositoryLocal(databaseService: databaseService),
+  );
+}
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  setupGetIt();
   runApp(const ScanItApp());
 }
 
