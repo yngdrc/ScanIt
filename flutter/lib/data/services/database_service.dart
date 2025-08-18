@@ -1,6 +1,4 @@
 import 'package:path/path.dart';
-import 'package:scanit/domain/models/core/local_model.dart';
-import 'package:scanit/utils/result.dart';
 import 'package:sqflite/sqflite.dart';
 
 abstract class DatabaseService {

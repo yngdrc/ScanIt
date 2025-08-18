@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:scanit/ui/camera/viewmodels/camera_view_model.dart';
 
@@ -22,7 +21,7 @@ class CameraScreen extends StatelessWidget implements NavigationScreen {
           return;
         }
 
-        viewModel.saveScan(scanData);
+        viewModel.saveScanCommand.execute(scanData);
       },
     );
   }
