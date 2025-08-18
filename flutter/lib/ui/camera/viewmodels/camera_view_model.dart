@@ -1,4 +1,5 @@
 import 'package:command_it/command_it.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../data/repositories/history/history_repository_local.dart';
 import '../../../domain/models/history/history_local_model.dart';
@@ -14,8 +15,8 @@ class CameraViewModel {
 
   Future<int> saveScan(String scanData) async {
     final historyItem = HistoryLocalModel(
-      id: 0,
-      title: scanData,
+      uuid: UuidValue.fromString(scanData),
+      barcodeData: scanData,
       scannedAtMillis: DateTime.now().millisecond,
     );
 

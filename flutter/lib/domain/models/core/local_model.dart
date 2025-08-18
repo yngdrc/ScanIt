@@ -1,5 +1,7 @@
-abstract class LocalModel {
-  const LocalModel({required this.id});
+import 'package:uuid/uuid.dart';
 
-  final int id;
+abstract class LocalModel {
+  const LocalModel({required this.uuid});
+
+  final UuidValue uuid;
 }

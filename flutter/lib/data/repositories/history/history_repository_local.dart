@@ -1,8 +1,8 @@
-
 import 'package:scanit/data/repositories/core/repository.dart';
 import 'package:scanit/data/services/database_service.dart';
 import 'package:scanit/domain/models/history/history_local_model.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:uuid/uuid.dart';
 
 class HistoryRepositoryLocal implements LocalRepository<HistoryLocalModel> {
   const HistoryRepositoryLocal({required DatabaseService databaseService})
@@ -14,9 +14,9 @@ class HistoryRepositoryLocal implements LocalRepository<HistoryLocalModel> {
   final DatabaseService _databaseService;
 
   @override
-  Future<int> delete(int id) async {
+  Future<int> delete(UuidValue uuid) async {
     final db = await _databaseService.database;
-    return await db.delete(tableName, where: 'id = ?', whereArgs: [id]);
+    return await db.delete(tableName, where: 'uuid = ?', whereArgs: [uuid.toString()]);
   }
 
   @override
@@ -28,17 +28,17 @@ class HistoryRepositoryLocal implements LocalRepository<HistoryLocalModel> {
   }
 
   @override
-  Future<HistoryLocalModel?> getById(int id) async {
+  Future<HistoryLocalModel?> getById(UuidValue uuid) async {
     final db = await _databaseService.database;
-    return await db.query(tableName, where: 'id = ?', whereArgs: [id]).then((
-      value,
-    ) {
-      if (value.isEmpty) {
-        return null;
-      }
+    return await db
+        .query(tableName, where: 'uuid = ?', whereArgs: [uuid.toString()])
+        .then((value) {
+          if (value.isEmpty) {
+            return null;
+          }
 
-      return HistoryLocalModel.fromJson(value.first);
-    });
+          return HistoryLocalModel.fromJson(value.first);
+        });
   }
 
   @override

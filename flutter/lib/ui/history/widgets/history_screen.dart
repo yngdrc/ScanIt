@@ -45,7 +45,7 @@ class _HistoryItemWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title: Text(item.title.toString()),
+      title: Text(item.barcodeData.toString()),
       subtitle: Text(
         DateTime.fromMillisecondsSinceEpoch(
           item.scannedAtMillis,

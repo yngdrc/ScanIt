@@ -1,27 +1,28 @@
+import 'package:uuid/uuid.dart';
 
 import '../core/local_model.dart';
 
 class HistoryLocalModel implements LocalModel {
   const HistoryLocalModel({
-    required this.id,
-    required this.title,
+    required this.uuid,
+    required this.barcodeData,
     required this.scannedAtMillis,
   });
 
   @override
-  final int id;
+  final UuidValue uuid;
 
-  final String title;
+  final String barcodeData;
   final int scannedAtMillis;
 
   HistoryLocalModel.fromJson(Map<String, dynamic> json)
-    : id = json['id'] as int,
-      title = json['title'] as String,
+    : uuid = UuidValue.fromString(json['uuid'] as String),
+      barcodeData = json['barcodeData'] as String,
       scannedAtMillis = json['scannedAtMillis'] as int;
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'title': title,
+    'uuid': uuid.toString(),
+    'barcodeData': barcodeData,
     'scannedAtMillis': scannedAtMillis,
   };
 }

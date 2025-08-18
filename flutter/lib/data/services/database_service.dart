@@ -24,7 +24,7 @@ class DatabaseServiceImpl implements DatabaseService {
 
   Future<void> _onCreate(Database db, int version) async {
     await db.execute(
-      'CREATE TABLE history(id INTEGER PRIMARY KEY, title TEXT, scannedAtMillis INTEGER)',
+      'CREATE TABLE history(uuid TEXT PRIMARY KEY, barcodeData TEXT, scannedAtMillis INTEGER)',
     );
   }
 }
