@@ -17,7 +17,7 @@ class CameraViewModel {
     final historyItem = HistoryLocalModel(
       uuid: UuidValue.fromString(scanData),
       barcodeData: scanData,
-      scannedAtMillis: DateTime.now().millisecond,
+      scannedAtMillis: DateTime.now().millisecondsSinceEpoch,
     );
 
     return await _historyRepository.insertOrReplace(historyItem);
