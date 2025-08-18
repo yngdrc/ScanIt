@@ -6,9 +6,7 @@ import '../../../navigation/navigation_screen.dart';
 import '../../../domain/models/history/history_local_model.dart';
 
 class HistoryScreen extends StatelessWidget implements NavigationScreen {
-  HistoryScreen({super.key, required this.viewModel}) {
-    viewModel.loadHistoryCommand.execute();
-  }
+  const HistoryScreen({super.key, required this.viewModel});
 
   final HistoryViewModel viewModel;
 

@@ -11,7 +11,7 @@ class HistoryViewModel extends ChangeNotifier {
     loadHistoryCommand = Command.createAsyncNoParam(
       _historyRepository.getAll,
       initialValue: [],
-    );
+    )..execute();
   }
 
   final HistoryRepositoryLocal _historyRepository;
