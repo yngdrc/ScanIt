@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:nil/nil.dart';
-import 'package:scanit/ui/navigation/navigation_key.dart';
+
+import '../../../navigation/navigation_key.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -10,36 +10,61 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  late PageController _pageViewController;
   NavigationKey _currentPage = NavigationKey.camera;
 
-  void _onDestinationSelected(int index) {
+  @override
+  void initState() {
+    super.initState();
+    _pageViewController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageViewController.dispose();
+    super.dispose();
+  }
+
+  void _onPageChanged(int index) {
     setState(() {
       _currentPage = NavigationKey.values[index];
     });
   }
 
+  void _onDestinationSelected(int index) {
+    _pageViewController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          _currentPage.screen,
-          Container(
-            alignment: Alignment.bottomCenter,
-            child: NavigationBar(
-              selectedIndex: _currentPage.index,
-              destinations: [
-                NavigationDestination(
-                  icon: Icon(NavigationKey.camera.icon),
-                  label: NavigationKey.camera.title,
-                ),
-                Nil()
-              ],
-              onDestinationSelected: _onDestinationSelected,
-              backgroundColor: Colors.transparent,
-            ),
+      appBar: AppBar(title: Text(_currentPage.title), centerTitle: true),
+      body: PageView.builder(
+        controller: _pageViewController,
+        itemCount: NavigationKey.values.length,
+        itemBuilder: (context, index) {
+          return NavigationKey.values[index].screen;
+        },
+        onPageChanged: _onPageChanged,
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentPage.index,
+        destinations: [
+          NavigationDestination(
+            icon: Icon(NavigationKey.camera.icon),
+            label: NavigationKey.camera.title,
+          ),
+          NavigationDestination(
+            icon: Icon(NavigationKey.history.icon),
+            label: NavigationKey.history.title,
           ),
         ],
+        onDestinationSelected: _onDestinationSelected,
+        backgroundColor: Colors.transparent,
       ),
     );
   }
