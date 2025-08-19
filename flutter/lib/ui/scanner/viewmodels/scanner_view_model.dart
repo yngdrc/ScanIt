@@ -1,7 +1,6 @@
 import 'package:command_it/command_it.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../../data/repositories/barcode/barcode_repository_local.dart';
 import '../../../domain/models/barcode/barcode_local_model.dart';
