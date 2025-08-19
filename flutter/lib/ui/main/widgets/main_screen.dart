@@ -47,7 +47,7 @@ class _MainScreenState extends State<MainScreen> {
         controller: _pageViewController,
         itemCount: NavigationKey.values.length,
         itemBuilder: (context, index) {
-          return NavigationKey.values[index].screen;
+          return NavigationKey.values[index].getScreen(context);
         },
         onPageChanged: _onPageChanged,
       ),

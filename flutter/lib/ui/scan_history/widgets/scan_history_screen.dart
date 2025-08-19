@@ -1,21 +1,28 @@
 import 'package:command_it/command_it.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../domain/models/barcode/barcode_local_model.dart';
 import '../../../navigation/navigation_screen.dart';
 import '../viewmodels/scan_history_view_model.dart';
 
-class ScanHistoryScreen extends StatelessWidget implements NavigationScreen {
-  const ScanHistoryScreen({super.key, required this.viewModel});
+class ScanHistoryScreen extends StatefulWidget implements NavigationScreen {
+  const ScanHistoryScreen({super.key});
 
-  final ScanHistoryViewModel viewModel;
+  @override
+  State<StatefulWidget> createState() => _ScanHistoryScreenState();
+}
+
+class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
+  ScanHistoryViewModel get _viewModel =>
+      Provider.of<ScanHistoryViewModel>(context, listen: false);
 
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
-      onRefresh: () => viewModel.loadHistoryCommand.executeWithFuture(),
+      onRefresh: () => _viewModel.loadHistoryCommand.executeWithFuture(),
       child: CommandBuilder(
-        command: viewModel.loadHistoryCommand,
+        command: _viewModel.loadHistoryCommand,
         whileExecuting: (_, _, _) => Center(
           child: SizedBox(
             width: 50.0,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
+import 'package:provider/provider.dart';
 import 'package:scanit/navigation/navigation_screen.dart';
 
 import '../data/repositories/barcode/barcode_repository_local.dart';
@@ -29,16 +29,12 @@ extension NavigationKeyExtension on NavigationKey {
     }
   }
 
-  NavigationScreen get screen {
+  NavigationScreen getScreen(BuildContext context) {
     switch (this) {
       case NavigationKey.scanner:
-        return ScannerScreen(
-          viewModel: ScannerViewModel(),
-        );
+        return ScannerScreen();
       case NavigationKey.scan_history:
-        return ScanHistoryScreen(
-          viewModel: ScanHistoryViewModel(),
-        );
+        return ScanHistoryScreen();
     }
   }
 }

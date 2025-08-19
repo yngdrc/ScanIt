@@ -4,15 +4,57 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:mobkit_dashed_border/mobkit_dashed_border.dart';
 import 'package:nil/nil.dart';
+import 'package:provider/provider.dart';
 import 'package:scanit/ui/scanner/viewmodels/scanner_view_model.dart';
 import 'package:scanit/utils/barcode_utils.dart';
 
 import '../../../navigation/navigation_screen.dart';
 
-class ScannerScreen extends StatelessWidget implements NavigationScreen {
-  const ScannerScreen({super.key, required this.viewModel});
+class ScannerScreen extends StatefulWidget implements NavigationScreen {
+  const ScannerScreen({super.key});
 
-  final ScannerViewModel viewModel;
+  @override
+  State<StatefulWidget> createState() => _ScannerScreenState();
+}
+
+class _ScannerScreenState extends State<ScannerScreen>
+    with TickerProviderStateMixin {
+  late final AnimationController _animationController = AnimationController(
+    duration: Duration(milliseconds: 500),
+    vsync: this,
+  );
+
+  late final Animation<double> _animation = CurvedAnimation(
+    parent: _animationController,
+    curve: Curves.fastLinearToSlowEaseIn,
+  ).drive(Tween(begin: 1, end: 0.8));
+
+  ScannerViewModel get _viewModel => Provider.of<ScannerViewModel>(
+    context,
+    listen: false,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _viewModel.saveScanCommand.addListener(_tryStartAnimation);
+  }
+
+  @override
+  void dispose() {
+    _viewModel.saveScanCommand.removeListener(_tryStartAnimation);
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _tryStartAnimation() async {
+    if (_viewModel.saveScanCommand.value == null) {
+      return;
+    }
+
+    _animationController.reset();
+    await _animationController.repeat(reverse: true, count: 2);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,16 +72,18 @@ class ScannerScreen extends StatelessWidget implements NavigationScreen {
           controller: MobileScannerController(
             detectionSpeed: DetectionSpeed.noDuplicates,
           ),
-          overlayBuilder: (_, constraints) {
+          overlayBuilder: (context, constraints) {
             return _ScanRectangleWidget(
               size: scanWindowSize,
-              command: viewModel.saveScanCommand,
+              listener: _animation,
+              command: _viewModel.saveScanCommand,
             );
           },
           onDetect: (barcodeCapture) {
             final barcode = barcodeCapture.barcodes.firstOrNull;
             if (barcode == null) return;
-            viewModel.saveScanCommand.execute(barcode);
+
+            _viewModel.saveScanCommand.execute(barcode);
           },
         );
       },
@@ -47,66 +91,31 @@ class ScannerScreen extends StatelessWidget implements NavigationScreen {
   }
 }
 
-class _ScanRectangleWidget extends StatefulWidget {
-  const _ScanRectangleWidget({required this.size, required this.command});
+class _ScanRectangleWidget extends AnimatedWidget {
+  const _ScanRectangleWidget({
+    required this.size,
+    required this.command,
+    required Animation<double> listener,
+  }) : super(listenable: listener);
 
   final double size;
   final Command<Barcode, Barcode?> command;
 
-  @override
-  State<StatefulWidget> createState() => _ScanRectangleWidgetState();
-}
-
-class _ScanRectangleWidgetState extends State<_ScanRectangleWidget>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _animationController = AnimationController(
-    duration: Duration(milliseconds: 500),
-    vsync: this,
-  );
-
-  late final Animation<double> _animation = CurvedAnimation(
-    parent: _animationController,
-    curve: Curves.fastLinearToSlowEaseIn,
-  ).drive(Tween(begin: 1, end: 0.8));
-
-  @override
-  void initState() {
-    super.initState();
-    widget.command.results.addListener(_tryStartAnimation);
-  }
-
-  @override
-  void dispose() {
-    widget.command.results.removeListener(_tryStartAnimation);
-    _animationController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _tryStartAnimation() async {
-    if (widget.command.value == null) {
-      return;
-    }
-
-    _animationController.reset();
-    await _animationController.repeat(reverse: true, count: 2);
-  }
+  Animation<double> get _progress => listenable as Animation<double>;
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (_, child) {
-        return Transform.scale(scale: _animation.value, child: child);
-      },
+    return Transform.scale(
+      scale: _progress.value,
       child: Container(
         alignment: Alignment.center,
         padding: EdgeInsets.all(10),
-        width: widget.size,
-        height: widget.size,
+        width: size,
+        height: size,
         decoration: BoxDecoration(
           border: DashedBorder.all(
             color: Colors.white,
-            dashLength: widget.size / 8,
+            dashLength: size / 8,
             width: 2,
             isOnlyCorner: true,
             strokeCap: StrokeCap.round,
@@ -114,7 +123,7 @@ class _ScanRectangleWidgetState extends State<_ScanRectangleWidget>
           borderRadius: BorderRadius.circular(5),
         ),
         child: CommandBuilder(
-          command: widget.command,
+          command: command,
           onData: (_, data, _) {
             final barcodeData = data?.rawValue;
             final barcodeType = data?.barcodeWidgetType;
