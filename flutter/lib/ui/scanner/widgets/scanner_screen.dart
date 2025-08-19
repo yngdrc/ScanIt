@@ -1,9 +1,7 @@
 import 'package:barcode_widget/barcode_widget.dart' as barcode_widget;
-import 'package:command_it/command_it.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:mobkit_dashed_border/mobkit_dashed_border.dart';
-import 'package:nil/nil.dart';
 import 'package:provider/provider.dart';
 import 'package:scanit/ui/scanner/viewmodels/scanner_view_model.dart';
 import 'package:scanit/utils/barcode_utils.dart';
@@ -18,7 +16,7 @@ class ScannerScreen extends StatefulWidget implements NavigationScreen {
 }
 
 class _ScannerScreenState extends State<ScannerScreen>
-    with TickerProviderStateMixin {
+    with SingleTickerProviderStateMixin {
   late final AnimationController _animationController = AnimationController(
     duration: Duration(milliseconds: 500),
     vsync: this,
@@ -29,31 +27,23 @@ class _ScannerScreenState extends State<ScannerScreen>
     curve: Curves.fastLinearToSlowEaseIn,
   ).drive(Tween(begin: 1, end: 0.8));
 
-  ScannerViewModel get _viewModel => Provider.of<ScannerViewModel>(
-    context,
-    listen: false,
-  );
-
-  @override
-  void initState() {
-    super.initState();
-    _viewModel.saveScanCommand.addListener(_tryStartAnimation);
-  }
+  ScannerViewModel get _viewModel =>
+      Provider.of<ScannerViewModel>(context, listen: false);
 
   @override
   void dispose() {
-    _viewModel.saveScanCommand.removeListener(_tryStartAnimation);
     _animationController.dispose();
     super.dispose();
   }
 
-  Future<void> _tryStartAnimation() async {
-    if (_viewModel.saveScanCommand.value == null) {
-      return;
-    }
+  Future<void> _onDetect(BarcodeCapture barcodeCapture) async {
+    final barcode = barcodeCapture.barcodes.firstOrNull;
+    if (barcode == null) return;
 
-    _animationController.reset();
-    await _animationController.repeat(reverse: true, count: 2);
+    await _viewModel.saveScan(barcode).then((_) async {
+      _animationController.reset();
+      await _animationController.repeat(reverse: true, count: 2);
+    });
   }
 
   @override
@@ -76,15 +66,9 @@ class _ScannerScreenState extends State<ScannerScreen>
             return _ScanRectangleWidget(
               size: scanWindowSize,
               listener: _animation,
-              command: _viewModel.saveScanCommand,
             );
           },
-          onDetect: (barcodeCapture) {
-            final barcode = barcodeCapture.barcodes.firstOrNull;
-            if (barcode == null) return;
-
-            _viewModel.saveScanCommand.execute(barcode);
-          },
+          onDetect: _onDetect,
         );
       },
     );
@@ -94,14 +78,16 @@ class _ScannerScreenState extends State<ScannerScreen>
 class _ScanRectangleWidget extends AnimatedWidget {
   const _ScanRectangleWidget({
     required this.size,
-    required this.command,
     required Animation<double> listener,
   }) : super(listenable: listener);
 
   final double size;
-  final Command<Barcode, Barcode?> command;
 
   Animation<double> get _progress => listenable as Animation<double>;
+
+  void _onTap(BuildContext context) {
+    Provider.of<ScannerViewModel>(context, listen: false).clearScan();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -122,25 +108,30 @@ class _ScanRectangleWidget extends AnimatedWidget {
           ),
           borderRadius: BorderRadius.circular(5),
         ),
-        child: CommandBuilder(
-          command: command,
-          onData: (_, data, _) {
-            final barcodeData = data?.rawValue;
-            final barcodeType = data?.barcodeWidgetType;
-            if (barcodeData == null || barcodeType == null) {
-              return Nil();
-            }
-
-            return barcode_widget.BarcodeWidget(
-              data: barcodeData,
-              barcode: barcode_widget.Barcode.fromType(barcodeType),
-              padding: EdgeInsets.all(10),
-              backgroundColor: Colors.white,
-              color: Colors.black,
-              style: TextStyle(color: Colors.black),
-            );
-          },
+        child: _createBarcodeWidget(
+          context,
+          Provider.of<ScannerViewModel>(context, listen: true).barcode,
         ),
+      ),
+    );
+  }
+
+  Widget? _createBarcodeWidget(BuildContext context, Barcode? barcode) {
+    final barcodeData = barcode?.rawValue;
+    final barcodeType = barcode?.barcodeWidgetType;
+    if (barcodeData == null || barcodeType == null) {
+      return null;
+    }
+
+    return GestureDetector(
+      onTap: () => _onTap(context),
+      child: barcode_widget.BarcodeWidget(
+        data: barcodeData,
+        barcode: barcode_widget.Barcode.fromType(barcodeType),
+        padding: EdgeInsets.all(10),
+        backgroundColor: Colors.white,
+        color: Colors.black,
+        style: TextStyle(color: Colors.black),
       ),
     );
   }

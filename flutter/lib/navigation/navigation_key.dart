@@ -10,7 +10,7 @@ extension NavigationKeyExtension on NavigationKey {
   String get title {
     switch (this) {
       case NavigationKey.scanner:
-        return "Camera";
+        return "Scan";
       case NavigationKey.scan_history:
         return "History";
     }

@@ -1,4 +1,3 @@
-import 'package:command_it/command_it.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
@@ -8,21 +7,25 @@ import '../../../domain/models/barcode/barcode_local_model.dart';
 class ScannerViewModel extends ChangeNotifier {
   ScannerViewModel({
     required BarcodeRepositoryLocal barcodeRepository
-  }) : _barcodeRepository = barcodeRepository {
-    saveScanCommand = Command.createAsync(saveScan, initialValue: null);
-  }
+  }) : _barcodeRepository = barcodeRepository;
 
   final BarcodeRepositoryLocal _barcodeRepository;
-  late Command<Barcode, Barcode?> saveScanCommand;
+  Barcode? _barcode;
+  Barcode? get barcode => _barcode;
 
-  Future<Barcode?> saveScan(Barcode barcode) async {
+  Future<void> saveScan(Barcode barcode) async {
+    _barcode = barcode;
     final barcodeModel = BarcodeLocalModel.fromBarcode(barcode);
     if (barcodeModel == null) {
-      return null;
+      return;
     }
 
-    return await _barcodeRepository.insertOrReplace(barcodeModel).then((_) {
-      return barcode;
-    });
+    await _barcodeRepository.insertOrReplace(barcodeModel);
+    notifyListeners();
+  }
+
+  void clearScan() {
+    _barcode = null;
+    notifyListeners();
   }
 }
