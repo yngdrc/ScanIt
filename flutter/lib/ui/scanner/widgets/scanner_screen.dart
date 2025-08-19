@@ -37,6 +37,8 @@ class _ScannerScreenState extends State<ScannerScreen>
   }
 
   Future<void> _onDetect(BarcodeCapture barcodeCapture) async {
+    if (_viewModel.barcode != null) return;
+
     final barcode = barcodeCapture.barcodes.firstOrNull;
     if (barcode == null) return;
 
@@ -59,9 +61,7 @@ class _ScannerScreenState extends State<ScannerScreen>
             width: scanWindowSize,
             height: scanWindowSize,
           ),
-          controller: MobileScannerController(
-            detectionSpeed: DetectionSpeed.noDuplicates,
-          ),
+          controller: MobileScannerController(),
           overlayBuilder: (context, constraints) {
             return _ScanRectangleWidget(
               size: scanWindowSize,
