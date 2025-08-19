@@ -11,7 +11,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   late PageController _pageViewController;
-  NavigationKey _currentPage = NavigationKey.camera;
+  NavigationKey _currentPage = NavigationKey.scanner;
 
   @override
   void initState() {
@@ -47,7 +47,7 @@ class _MainScreenState extends State<MainScreen> {
         controller: _pageViewController,
         itemCount: NavigationKey.values.length,
         itemBuilder: (context, index) {
-          return NavigationKey.values[index].screen;
+          return NavigationKey.values[index].getScreen(context);
         },
         onPageChanged: _onPageChanged,
       ),
@@ -55,12 +55,12 @@ class _MainScreenState extends State<MainScreen> {
         selectedIndex: _currentPage.index,
         destinations: [
           NavigationDestination(
-            icon: Icon(NavigationKey.camera.icon),
-            label: NavigationKey.camera.title,
+            icon: Icon(NavigationKey.scanner.icon),
+            label: NavigationKey.scanner.title,
           ),
           NavigationDestination(
-            icon: Icon(NavigationKey.history.icon),
-            label: NavigationKey.history.title,
+            icon: Icon(NavigationKey.scan_history.icon),
+            label: NavigationKey.scan_history.title,
           ),
         ],
         onDestinationSelected: _onDestinationSelected,

@@ -1,34 +1,39 @@
 import 'package:scanit/data/repositories/core/repository.dart';
 import 'package:scanit/data/services/database_service.dart';
-import 'package:scanit/domain/models/history/history_local_model.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
-class HistoryRepositoryLocal implements LocalRepository<HistoryLocalModel> {
-  const HistoryRepositoryLocal({required DatabaseService databaseService})
+import '../../../domain/models/barcode/barcode_local_model.dart';
+
+class BarcodeRepositoryLocal implements LocalRepository<BarcodeLocalModel> {
+  const BarcodeRepositoryLocal({required DatabaseService databaseService})
     : _databaseService = databaseService;
 
   @override
-  final String tableName = 'history';
+  final String tableName = 'barcode';
 
   final DatabaseService _databaseService;
 
   @override
   Future<int> delete(UuidValue uuid) async {
     final db = await _databaseService.database;
-    return await db.delete(tableName, where: 'uuid = ?', whereArgs: [uuid.toString()]);
+    return await db.delete(
+      tableName,
+      where: 'uuid = ?',
+      whereArgs: [uuid.toString()],
+    );
   }
 
   @override
-  Future<List<HistoryLocalModel>> getAll() async {
+  Future<List<BarcodeLocalModel>> getAll() async {
     final db = await _databaseService.database;
     return await db.query(tableName).then((value) {
-      return value.map((json) => HistoryLocalModel.fromJson(json)).toList();
+      return value.map((json) => BarcodeLocalModel.fromJson(json)).toList();
     });
   }
 
   @override
-  Future<HistoryLocalModel?> getById(UuidValue uuid) async {
+  Future<BarcodeLocalModel?> getById(UuidValue uuid) async {
     final db = await _databaseService.database;
     return await db
         .query(tableName, where: 'uuid = ?', whereArgs: [uuid.toString()])
@@ -37,12 +42,12 @@ class HistoryRepositoryLocal implements LocalRepository<HistoryLocalModel> {
             return null;
           }
 
-          return HistoryLocalModel.fromJson(value.first);
+          return BarcodeLocalModel.fromJson(value.first);
         });
   }
 
   @override
-  Future<int> insertOrReplace(HistoryLocalModel item) async {
+  Future<int> insertOrReplace(BarcodeLocalModel item) async {
     final db = await _databaseService.database;
     return await db.insert(
       tableName,
