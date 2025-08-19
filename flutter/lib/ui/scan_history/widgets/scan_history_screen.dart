@@ -13,6 +13,7 @@ class ScanHistoryScreen extends StatelessWidget implements NavigationScreen {
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
+      onRefresh: () => viewModel.loadHistoryCommand.executeWithFuture(),
       child: CommandBuilder(
         command: viewModel.loadHistoryCommand,
         whileExecuting: (_, _, _) => Center(
@@ -30,7 +31,6 @@ class ScanHistoryScreen extends StatelessWidget implements NavigationScreen {
           },
         ),
       ),
-      onRefresh: () => viewModel.loadHistoryCommand.executeWithFuture(),
     );
   }
 }

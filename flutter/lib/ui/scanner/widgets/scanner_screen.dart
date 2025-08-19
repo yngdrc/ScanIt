@@ -2,8 +2,10 @@ import 'package:barcode_widget/barcode_widget.dart' as barcode_widget;
 import 'package:command_it/command_it.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:mobkit_dashed_border/mobkit_dashed_border.dart';
 import 'package:nil/nil.dart';
 import 'package:scanit/ui/scanner/viewmodels/scanner_view_model.dart';
+import 'package:scanit/utils/barcode_utils.dart';
 
 import '../../../navigation/navigation_screen.dart';
 
@@ -49,7 +51,7 @@ class _ScanRectangleWidget extends StatefulWidget {
   const _ScanRectangleWidget({required this.size, required this.command});
 
   final double size;
-  final Command<Barcode, void> command;
+  final Command<Barcode, Barcode?> command;
 
   @override
   State<StatefulWidget> createState() => _ScanRectangleWidgetState();
@@ -65,7 +67,6 @@ class _ScanRectangleWidgetState extends State<_ScanRectangleWidget>
   late final Animation<double> _animation = CurvedAnimation(
     parent: _animationController,
     curve: Curves.fastLinearToSlowEaseIn,
-    // reverseCurve: Curves.fastLinearToSlowEaseIn,
   ).drive(Tween(begin: 1, end: 0.8));
 
   @override
@@ -82,7 +83,7 @@ class _ScanRectangleWidgetState extends State<_ScanRectangleWidget>
   }
 
   Future<void> _tryStartAnimation() async {
-    if (!widget.command.results.value.isSuccess) {
+    if (widget.command.value == null) {
       return;
     }
 
@@ -102,13 +103,34 @@ class _ScanRectangleWidgetState extends State<_ScanRectangleWidget>
         padding: EdgeInsets.all(10),
         width: widget.size,
         height: widget.size,
-        foregroundDecoration: BoxDecoration(
-          border: BoxBorder.all(color: Colors.white, width: 2),
-          borderRadius: BorderRadius.all(Radius.circular(5)),
+        decoration: BoxDecoration(
+          border: DashedBorder.all(
+            color: Colors.white,
+            dashLength: widget.size / 8,
+            width: 2,
+            isOnlyCorner: true,
+            strokeCap: StrokeCap.round,
+          ),
+          borderRadius: BorderRadius.circular(5),
         ),
         child: CommandBuilder(
           command: widget.command,
-          onData: (_, _, _) => Nil(),
+          onData: (_, data, _) {
+            final barcodeData = data?.rawValue;
+            final barcodeType = data?.barcodeWidgetType;
+            if (barcodeData == null || barcodeType == null) {
+              return Nil();
+            }
+
+            return barcode_widget.BarcodeWidget(
+              data: barcodeData,
+              barcode: barcode_widget.Barcode.fromType(barcodeType),
+              padding: EdgeInsets.all(10),
+              backgroundColor: Colors.white,
+              color: Colors.black,
+              style: TextStyle(color: Colors.black),
+            );
+          },
         ),
       ),
     );

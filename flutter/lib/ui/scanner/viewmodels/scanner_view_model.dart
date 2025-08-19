@@ -8,21 +8,23 @@ import '../../../domain/models/barcode/barcode_local_model.dart';
 
 class ScannerViewModel {
   ScannerViewModel() {
-    saveScanCommand = Command.createAsyncNoResult(saveScan);
+    saveScanCommand = Command.createAsync(saveScan, initialValue: null);
   }
 
   final BarcodeRepositoryLocal _barcodeRepository = BarcodeRepositoryLocal(
     databaseService: GetIt.instance.get(),
   );
 
-  late Command<Barcode, void> saveScanCommand;
+  late Command<Barcode, Barcode?> saveScanCommand;
 
-  Future<void> saveScan(Barcode barcode) async {
+  Future<Barcode?> saveScan(Barcode barcode) async {
     final barcodeModel = BarcodeLocalModel.fromBarcode(barcode);
     if (barcodeModel == null) {
-      return;
+      return null;
     }
 
-    await _barcodeRepository.insertOrReplace(barcodeModel);
+    return await _barcodeRepository.insertOrReplace(barcodeModel).then((_) {
+      return barcode;
+    });
   }
 }
