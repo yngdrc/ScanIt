@@ -1,14 +1,14 @@
 import 'package:command_it/command_it.dart';
 import 'package:flutter/material.dart';
-import 'package:scanit/ui/history/viewmodels/history_view_model.dart';
 
+import '../../../domain/models/barcode/barcode_local_model.dart';
 import '../../../navigation/navigation_screen.dart';
-import '../../../domain/models/history/history_local_model.dart';
+import '../viewmodels/scan_history_view_model.dart';
 
-class HistoryScreen extends StatelessWidget implements NavigationScreen {
-  const HistoryScreen({super.key, required this.viewModel});
+class ScanHistoryScreen extends StatelessWidget implements NavigationScreen {
+  const ScanHistoryScreen({super.key, required this.viewModel});
 
-  final HistoryViewModel viewModel;
+  final ScanHistoryViewModel viewModel;
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +26,7 @@ class HistoryScreen extends StatelessWidget implements NavigationScreen {
         onData: (_, data, _) => ListView.builder(
           itemCount: data.length,
           itemBuilder: (context, index) {
-            return _HistoryItemWidget(item: data[index]);
+            return _ScanHistoryItemWidget(item: data[index]);
           },
         ),
       ),
@@ -35,23 +35,26 @@ class HistoryScreen extends StatelessWidget implements NavigationScreen {
   }
 }
 
-class _HistoryItemWidget extends StatelessWidget {
-  const _HistoryItemWidget({required this.item});
+class _ScanHistoryItemWidget extends StatelessWidget {
+  const _ScanHistoryItemWidget({required this.item});
 
-  final HistoryLocalModel item;
+  final BarcodeLocalModel item;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title: Text(item.barcodeData.toString()),
+      leading: null, // TODO icon based on barcode type / barcode format
+      title: Column(children: [
+        Text(item.barcodeFormat.name),
+        Text(item.barcodeData.toString()),
+      ]),
       subtitle: Text(
         DateTime.fromMillisecondsSinceEpoch(
           item.scannedAtMillis,
         ).toLocal().toString(),
       ),
-      leading: Icon(Icons.history),
       onTap: () {
-        // Handle item tap
+        // TODO show QR / barcode image with sharing options
       },
     );
   }

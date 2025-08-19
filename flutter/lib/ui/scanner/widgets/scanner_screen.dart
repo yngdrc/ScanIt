@@ -1,16 +1,16 @@
-import 'package:barcode_widget/barcode_widget.dart';
+import 'package:barcode_widget/barcode_widget.dart' as barcode_widget;
 import 'package:command_it/command_it.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:nil/nil.dart';
-import 'package:scanit/ui/camera/viewmodels/camera_view_model.dart';
+import 'package:scanit/ui/scanner/viewmodels/scanner_view_model.dart';
 
 import '../../../navigation/navigation_screen.dart';
 
-class CameraScreen extends StatelessWidget implements NavigationScreen {
-  const CameraScreen({super.key, required this.viewModel});
+class ScannerScreen extends StatelessWidget implements NavigationScreen {
+  const ScannerScreen({super.key, required this.viewModel});
 
-  final CameraViewModel viewModel;
+  final ScannerViewModel viewModel;
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +49,7 @@ class _ScanRectangleWidget extends StatefulWidget {
   const _ScanRectangleWidget({required this.size, required this.command});
 
   final double size;
-  final Command<BarcodeCapture, void> command;
+  final Command<Barcode, void> command;
 
   @override
   State<StatefulWidget> createState() => _ScanRectangleWidgetState();
@@ -108,7 +108,7 @@ class _ScanRectangleWidgetState extends State<_ScanRectangleWidget>
         ),
         child: CommandBuilder(
           command: widget.command,
-          onData: null,
+          onData: (_, _, _) => Nil(),
         ),
       ),
     );
