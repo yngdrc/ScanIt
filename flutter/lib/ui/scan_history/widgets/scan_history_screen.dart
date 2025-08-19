@@ -44,10 +44,13 @@ class _ScanHistoryItemWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: null, // TODO icon based on barcode type / barcode format
-      title: Column(children: [
-        Text(item.barcodeFormat.name),
-        Text(item.barcodeData.toString()),
-      ]),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(item.barcodeFormat.name),
+          Text(item.barcodeData.toString()),
+        ],
+      ),
       subtitle: Text(
         DateTime.fromMillisecondsSinceEpoch(
           item.scannedAtMillis,

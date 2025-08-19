@@ -58,14 +58,14 @@ class _ScanRectangleWidget extends StatefulWidget {
 class _ScanRectangleWidgetState extends State<_ScanRectangleWidget>
     with SingleTickerProviderStateMixin {
   late final AnimationController _animationController = AnimationController(
-    duration: Duration(milliseconds: 2000),
+    duration: Duration(milliseconds: 500),
     vsync: this,
   );
 
   late final Animation<double> _animation = CurvedAnimation(
     parent: _animationController,
     curve: Curves.fastLinearToSlowEaseIn,
-    reverseCurve: Curves.fastLinearToSlowEaseIn,
+    // reverseCurve: Curves.fastLinearToSlowEaseIn,
   ).drive(Tween(begin: 1, end: 0.8));
 
   @override
