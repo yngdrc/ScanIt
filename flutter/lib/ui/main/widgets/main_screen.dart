@@ -1,6 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide NavigationBar;
+import 'package:scanit/navigation/navigation_model.dart';
 
 import '../../../navigation/navigation_key.dart';
+import '../../../navigation/navigation_bar.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -10,61 +12,49 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  late PageController _pageViewController;
-  NavigationKey _currentPage = NavigationKey.scanner;
+  final PageController _pageController = PageController();
+  final List<NavigationModel> _destinations = [
+    NavigationKey.scanner,
+    NavigationKey.scanHistory,
+  ].map((navigationKey) => navigationKey.createNavigationModel()).toList();
 
-  @override
-  void initState() {
-    super.initState();
-    _pageViewController = PageController();
-  }
+  NavigationKey _currentNavigationKey = NavigationKey.scanner;
 
   @override
   void dispose() {
-    _pageViewController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
   void _onPageChanged(int index) {
     setState(() {
-      _currentPage = NavigationKey.values[index];
+      _currentNavigationKey = _destinations[index].navigationKey;
     });
   }
 
-  void _onDestinationSelected(int index) {
-    _pageViewController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeInOut,
+  void _onDestinationSelected(NavigationKey navigationKey) {
+    _pageController.jumpToPage(
+      _destinations.indexWhere((destination) {
+        return destination.navigationKey == navigationKey;
+      }),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_currentPage.title), centerTitle: true),
-      body: PageView.builder(
-        controller: _pageViewController,
-        itemCount: NavigationKey.values.length,
-        itemBuilder: (context, index) {
-          return NavigationKey.values[index].getScreen(context);
-        },
+      body: PageView(
+        controller: _pageController,
+        physics: NeverScrollableScrollPhysics(),
         onPageChanged: _onPageChanged,
+        children: _destinations.map((destination) {
+          return destination.createPage(context);
+        }).toList(),
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentPage.index,
-        destinations: [
-          NavigationDestination(
-            icon: Icon(NavigationKey.scanner.icon),
-            label: NavigationKey.scanner.title,
-          ),
-          NavigationDestination(
-            icon: Icon(NavigationKey.scan_history.icon),
-            label: NavigationKey.scan_history.title,
-          ),
-        ],
+        destinations: _destinations,
+        currentNavigationKey: _currentNavigationKey,
         onDestinationSelected: _onDestinationSelected,
-        backgroundColor: Colors.transparent,
       ),
     );
   }
