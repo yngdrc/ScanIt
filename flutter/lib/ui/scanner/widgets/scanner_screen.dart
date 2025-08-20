@@ -2,14 +2,15 @@ import 'package:barcode_widget/barcode_widget.dart' as barcode_widget;
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:mobkit_dashed_border/mobkit_dashed_border.dart';
-import 'package:provider/provider.dart';
 import 'package:scanit/ui/scanner/viewmodels/scanner_view_model.dart';
 import 'package:scanit/utils/barcode_utils.dart';
 
 import '../../../navigation/navigation_screen.dart';
 
 class ScannerScreen extends StatefulWidget implements NavigationScreen {
-  const ScannerScreen({super.key});
+  const ScannerScreen({super.key, required this.viewModel});
+
+  final ScannerViewModel viewModel;
 
   @override
   State<StatefulWidget> createState() => _ScannerScreenState();
@@ -27,9 +28,6 @@ class _ScannerScreenState extends State<ScannerScreen>
     curve: Curves.fastLinearToSlowEaseIn,
   ).drive(Tween(begin: 1, end: 0.8));
 
-  ScannerViewModel get _viewModel =>
-      Provider.of<ScannerViewModel>(context, listen: false);
-
   @override
   void dispose() {
     _animationController.dispose();
@@ -37,15 +35,19 @@ class _ScannerScreenState extends State<ScannerScreen>
   }
 
   Future<void> _onDetect(BarcodeCapture barcodeCapture) async {
-    if (_viewModel.barcode != null) return;
+    if (widget.viewModel.barcode != null) return;
 
     final barcode = barcodeCapture.barcodes.firstOrNull;
     if (barcode == null) return;
 
-    await _viewModel.saveScan(barcode).then((_) async {
+    await widget.viewModel.saveScan(barcode).then((_) async {
       _animationController.reset();
       await _animationController.repeat(reverse: true, count: 2);
     });
+  }
+
+  void _clearScan() {
+    widget.viewModel.clearScan();
   }
 
   @override
@@ -65,6 +67,8 @@ class _ScannerScreenState extends State<ScannerScreen>
           overlayBuilder: (context, constraints) {
             return _ScanRectangleWidget(
               size: scanWindowSize,
+              onTap: _clearScan,
+              barcode: widget.viewModel.barcode,
               listener: _animation,
             );
           },
@@ -78,16 +82,16 @@ class _ScannerScreenState extends State<ScannerScreen>
 class _ScanRectangleWidget extends AnimatedWidget {
   const _ScanRectangleWidget({
     required this.size,
+    required this.onTap,
+    required this.barcode,
     required Animation<double> listener,
   }) : super(listenable: listener);
 
   final double size;
+  final VoidCallback onTap;
+  final Barcode? barcode;
 
   Animation<double> get _progress => listenable as Animation<double>;
-
-  void _onTap(BuildContext context) {
-    Provider.of<ScannerViewModel>(context, listen: false).clearScan();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -108,10 +112,7 @@ class _ScanRectangleWidget extends AnimatedWidget {
           ),
           borderRadius: BorderRadius.circular(5),
         ),
-        child: _createBarcodeWidget(
-          context,
-          Provider.of<ScannerViewModel>(context, listen: true).barcode,
-        ),
+        child: _createBarcodeWidget(context, barcode),
       ),
     );
   }
@@ -124,7 +125,7 @@ class _ScanRectangleWidget extends AnimatedWidget {
     }
 
     return GestureDetector(
-      onTap: () => _onTap(context),
+      onTap: onTap,
       child: barcode_widget.BarcodeWidget(
         data: barcodeData,
         barcode: barcode_widget.Barcode.fromType(barcodeType),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:scanit/navigation/navigation_screen.dart';
 
 import '../ui/scan_history/widgets/scan_history_screen.dart';
@@ -28,9 +29,13 @@ extension NavigationKeyExtension on NavigationKey {
   NavigationScreen getScreen(BuildContext context) {
     switch (this) {
       case NavigationKey.scanner:
-        return ScannerScreen();
+        return ScannerScreen(
+          viewModel: context.watch(),
+        );
       case NavigationKey.scan_history:
-        return ScanHistoryScreen();
+        return ScanHistoryScreen(
+          viewModel: context.watch(),
+        );
     }
   }
 }
