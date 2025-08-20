@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:scanit/data/repositories/barcode/barcode_repository_local.dart';
-import 'package:scanit/ui/core/themes/theme.dart';
+import 'package:scanit/ui/colors.dart';
 import 'package:scanit/ui/main/widgets/main_screen.dart';
 import 'package:scanit/ui/scan_history/viewmodels/scan_history_view_model.dart';
 import 'package:scanit/ui/scanner/viewmodels/scanner_view_model.dart';
@@ -25,8 +25,6 @@ class ScanItApp extends StatelessWidget {
       "Roboto Flex",
     );
 
-    MaterialTheme theme = MaterialTheme(textTheme);
-
     return MultiProvider(
       providers: [
         Provider<DatabaseService>.value(value: DatabaseServiceImpl()),
@@ -45,11 +43,12 @@ class ScanItApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: 'ScanIt',
-        theme: theme.light(),
-        darkTheme: theme.dark(),
-        highContrastTheme: theme.lightHighContrast(),
-        highContrastDarkTheme: theme.darkHighContrast(),
-        themeMode: ThemeMode.system,
+        theme: ThemeData(
+          useMaterial3: true,
+          useSystemColors: true,
+          textTheme: textTheme,
+          scaffoldBackgroundColor: ScanItColors.surface
+        ),
         home: const MainScreen(),
       ),
     );

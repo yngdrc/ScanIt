@@ -5,9 +5,7 @@ import 'package:mobkit_dashed_border/mobkit_dashed_border.dart';
 import 'package:scanit/ui/scanner/viewmodels/scanner_view_model.dart';
 import 'package:scanit/utils/barcode_utils.dart';
 
-import '../../../navigation/navigation_screen.dart';
-
-class ScannerScreen extends StatefulWidget implements NavigationScreen {
+class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key, required this.viewModel});
 
   final ScannerViewModel viewModel;

@@ -1,39 +1,50 @@
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 import 'package:provider/provider.dart';
-import 'package:scanit/navigation/navigation_screen.dart';
+import 'package:scanit/navigation/navigation_model.dart';
 
 import '../ui/scan_history/widgets/scan_history_screen.dart';
 import '../ui/scanner/widgets/scanner_screen.dart';
 
-enum NavigationKey { scanner, scan_history }
+enum NavigationKey { scanner, scanHistory }
 
 extension NavigationKeyExtension on NavigationKey {
-  String get title {
+  NavigationModel createNavigationModel() {
     switch (this) {
       case NavigationKey.scanner:
-        return "Scan";
-      case NavigationKey.scan_history:
-        return "History";
+        return NavigationModel(
+          globalKey: GlobalKey<NavigatorState>(),
+          navigationKey: this,
+        );
+      case NavigationKey.scanHistory:
+        return NavigationModel(
+          globalKey: GlobalKey<NavigatorState>(),
+          navigationKey: this,
+        );
     }
   }
 
   IconData get icon {
     switch (this) {
       case NavigationKey.scanner:
-        return Icons.document_scanner;
-      case NavigationKey.scan_history:
-        return Icons.history;
+        return Symbols.camera;
+      case NavigationKey.scanHistory:
+        return Symbols.history;
     }
   }
+}
 
-  NavigationScreen getScreen(BuildContext context) {
-    switch (this) {
+extension NavigationModelExtension on NavigationModel {
+  Widget createPage(BuildContext context) {
+    switch (navigationKey) {
       case NavigationKey.scanner:
         return ScannerScreen(
+          key: globalKey,
           viewModel: context.watch(),
         );
-      case NavigationKey.scan_history:
+      case NavigationKey.scanHistory:
         return ScanHistoryScreen(
+          key: globalKey,
           viewModel: context.watch(),
         );
     }

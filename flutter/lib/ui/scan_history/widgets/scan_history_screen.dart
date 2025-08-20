@@ -2,10 +2,9 @@ import 'package:command_it/command_it.dart';
 import 'package:flutter/material.dart';
 
 import '../../../domain/models/barcode/barcode_local_model.dart';
-import '../../../navigation/navigation_screen.dart';
 import '../viewmodels/scan_history_view_model.dart';
 
-class ScanHistoryScreen extends StatelessWidget implements NavigationScreen {
+class ScanHistoryScreen extends StatelessWidget {
   const ScanHistoryScreen({super.key, required this.viewModel});
 
   final ScanHistoryViewModel viewModel;

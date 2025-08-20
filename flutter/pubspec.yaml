@@ -44,6 +44,7 @@ dependencies:
   barcode_widget: ^2.0.4
   mobkit_dashed_border: ^0.0.8
   provider: ^6.1.5
+  material_symbols_icons: ^4.2867.0
 
 dev_dependencies:
   flutter_test:
