@@ -1,14 +1,23 @@
 import 'package:barcode_widget/barcode_widget.dart' as barcode_widget;
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:mobkit_dashed_border/mobkit_dashed_border.dart';
 import 'package:scanit/ui/scanner/viewmodels/scanner_view_model.dart';
+import 'package:scanit/ui/scanner/widgets/scan_result_widget.dart';
 import 'package:scanit/utils/barcode_utils.dart';
 
+import 'mobile_scanner_mask.dart';
+
 class ScannerScreen extends StatefulWidget {
-  const ScannerScreen({super.key, required this.viewModel});
+  const ScannerScreen({
+    super.key,
+    required this.viewModel,
+    required this.bottomNavigationBarKey,
+  });
 
   final ScannerViewModel viewModel;
+  final GlobalKey bottomNavigationBarKey;
 
   @override
   State<StatefulWidget> createState() => _ScannerScreenState();
@@ -52,25 +61,68 @@ class _ScannerScreenState extends State<ScannerScreen>
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (_, constraints) {
-        final Size layoutSize = constraints.biggest;
-        final double scanWindowSize = layoutSize.shortestSide / 2;
+        final navbarRenderBox =
+            widget.bottomNavigationBarKey.currentContext?.findRenderObject()
+                as RenderBox?;
 
-        return MobileScanner(
-          scanWindow: Rect.fromCenter(
-            center: layoutSize.center(Offset.zero),
-            width: scanWindowSize,
-            height: scanWindowSize,
-          ),
-          controller: MobileScannerController(),
-          overlayBuilder: (context, constraints) {
-            return _ScanRectangleWidget(
-              size: scanWindowSize,
-              onTap: _clearScan,
-              barcode: widget.viewModel.barcode,
-              listener: _animation,
-            );
-          },
-          onDetect: _onDetect,
+        final navbarPosition = navbarRenderBox?.localToGlobal(Offset.zero);
+        final layoutSize = constraints.biggest;
+        final scanWindowSize = layoutSize.shortestSide / 2;
+        final scanWindow = Rect.fromCenter(
+          center: layoutSize.center(Offset.zero),
+          width: scanWindowSize,
+          height: scanWindowSize,
+        );
+
+        return Stack(
+          children: [
+            MobileScanner(
+              scanWindow: scanWindow,
+              controller: MobileScannerController(),
+              onDetect: _onDetect,
+            ),
+            MobileScannerMask(),
+            Container(
+              alignment: Alignment.center,
+              child: _ScanRectangleWidget(
+                size: scanWindowSize,
+                padding: EdgeInsets.all(
+                  (scanWindowSize - (layoutSize.shortestSide / 2.1)) / 2,
+                ),
+                barcode: widget.viewModel.barcode,
+                listener: _animation,
+              ),
+            ),
+
+            if (widget.viewModel.barcode != null)
+              Positioned(
+                left: layoutSize.center(Offset.zero).dx - (48 / 2),
+                top: scanWindow.bottom + 16,
+                child: IconButton.filled(
+                  color: Colors.black,
+                  onPressed: _clearScan,
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    fixedSize: Size(48, 48),
+                  ),
+                  icon: Icon(Symbols.clear),
+                ),
+              ),
+
+            if (widget.viewModel.barcode != null)
+              Positioned(
+                left: layoutSize.center(Offset.zero).dx - (260 / 2),
+                width: 260,
+                top: (navbarPosition?.dy ?? 0) - 85,
+                height: 85,
+                child: ScanResultWidget(
+                  barcode: widget.viewModel.barcode!,
+                  onTap: () {
+                    // TODO navigate to scan details
+                  },
+                ),
+              ),
+          ],
         );
       },
     );
@@ -80,38 +132,35 @@ class _ScannerScreenState extends State<ScannerScreen>
 class _ScanRectangleWidget extends AnimatedWidget {
   const _ScanRectangleWidget({
     required this.size,
-    required this.onTap,
+    required this.padding,
     required this.barcode,
     required Animation<double> listener,
   }) : super(listenable: listener);
 
   final double size;
-  final VoidCallback onTap;
+  final EdgeInsets padding;
   final Barcode? barcode;
 
   Animation<double> get _progress => listenable as Animation<double>;
 
   @override
   Widget build(BuildContext context) {
-    return Transform.scale(
-      scale: _progress.value,
-      child: Container(
-        alignment: Alignment.center,
-        padding: EdgeInsets.all(10),
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          border: DashedBorder.all(
-            color: Colors.white,
-            dashLength: size / 8,
-            width: 2,
-            isOnlyCorner: true,
-            strokeCap: StrokeCap.round,
-          ),
-          borderRadius: BorderRadius.circular(5),
+    return Container(
+      alignment: Alignment.center,
+      padding: padding,
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        border: DashedBorder.all(
+          color: Colors.white,
+          dashLength: size / 4,
+          width: 3,
+          isOnlyCorner: true,
+          strokeAlign: BorderSide.strokeAlignOutside,
         ),
-        child: _createBarcodeWidget(context, barcode),
+        borderRadius: BorderRadius.circular(5),
       ),
+      child: _createBarcodeWidget(context, barcode),
     );
   }
 
@@ -122,16 +171,13 @@ class _ScanRectangleWidget extends AnimatedWidget {
       return null;
     }
 
-    return GestureDetector(
-      onTap: onTap,
-      child: barcode_widget.BarcodeWidget(
-        data: barcodeData,
-        barcode: barcode_widget.Barcode.fromType(barcodeType),
-        padding: EdgeInsets.all(10),
-        backgroundColor: Colors.white,
-        color: Colors.black,
-        style: TextStyle(color: Colors.black),
-      ),
+    return barcode_widget.BarcodeWidget(
+      data: barcodeData,
+      barcode: barcode_widget.Barcode.fromType(barcodeType),
+      padding: EdgeInsets.all(10),
+      backgroundColor: Colors.white,
+      color: Colors.black,
+      style: TextStyle(color: Colors.black),
     );
   }
 }

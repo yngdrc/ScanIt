@@ -1,7 +1,5 @@
-
 import 'package:flutter/material.dart' hide NavigationDestination;
-import 'package:scanit/navigation/navigation_destination.dart';
-import 'package:scanit/ui/colors.dart';
+import 'package:scanit/core/navigation/navigation_destination.dart';
 
 import 'navigation_key.dart';
 import 'navigation_model.dart';
@@ -22,12 +20,12 @@ class NavigationBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      color: ScanItColors.surface,
-      padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+      padding: EdgeInsets.all(34),
       child: SafeArea(
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
+          spacing: 40,
           children: destinations.map((destination) {
             final isSelected =
                 destination.navigationKey == currentNavigationKey;

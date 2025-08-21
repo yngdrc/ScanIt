@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart' hide NavigationBar;
-import 'package:scanit/navigation/navigation_model.dart';
 
-import '../../../navigation/navigation_key.dart';
-import '../../../navigation/navigation_bar.dart';
+import '../../../core/navigation/navigation_bar.dart';
+import '../../../core/navigation/navigation_key.dart';
+import '../../../core/navigation/navigation_model.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -12,6 +12,8 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  final GlobalKey _bottomNavigationBarKey = GlobalKey();
+
   final PageController _pageController = PageController();
   final List<NavigationModel> _destinations = [
     NavigationKey.scanner,
@@ -43,15 +45,30 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        title: Text(
+          _currentNavigationKey.title,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.normal,
+          ),
+        ),
+        centerTitle: _currentNavigationKey == NavigationKey.scanner,
+      ),
       body: PageView(
         controller: _pageController,
         physics: NeverScrollableScrollPhysics(),
         onPageChanged: _onPageChanged,
         children: _destinations.map((destination) {
-          return destination.createPage(context);
+          return destination.createPage(context, _bottomNavigationBarKey);
         }).toList(),
       ),
+      extendBody: true,
+      extendBodyBehindAppBar: _currentNavigationKey == NavigationKey.scanner,
       bottomNavigationBar: NavigationBar(
+        key: _bottomNavigationBarKey,
         destinations: _destinations,
         currentNavigationKey: _currentNavigationKey,
         onDestinationSelected: _onDestinationSelected,

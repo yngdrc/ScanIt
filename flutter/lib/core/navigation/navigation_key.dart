@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 import 'package:provider/provider.dart';
-import 'package:scanit/navigation/navigation_model.dart';
+import 'package:scanit/core/navigation/navigation_model.dart';
 
-import '../ui/scan_history/widgets/scan_history_screen.dart';
-import '../ui/scanner/widgets/scanner_screen.dart';
+import '../../ui/scan_history/widgets/scan_history_screen.dart';
+import '../../ui/scanner/widgets/scanner_screen.dart';
 
 enum NavigationKey { scanner, scanHistory }
 
@@ -24,6 +24,15 @@ extension NavigationKeyExtension on NavigationKey {
     }
   }
 
+  String get title {
+    switch (this) {
+      case NavigationKey.scanner:
+        return 'Scan';
+      case NavigationKey.scanHistory:
+        return 'History';
+    }
+  }
+
   IconData get icon {
     switch (this) {
       case NavigationKey.scanner:
@@ -35,18 +44,19 @@ extension NavigationKeyExtension on NavigationKey {
 }
 
 extension NavigationModelExtension on NavigationModel {
-  Widget createPage(BuildContext context) {
+  Widget createPage(BuildContext context, GlobalKey bottomNavigationBarKey) {
     switch (navigationKey) {
       case NavigationKey.scanner:
         return ScannerScreen(
           key: globalKey,
           viewModel: context.watch(),
+          bottomNavigationBarKey: bottomNavigationBarKey,
         );
       case NavigationKey.scanHistory:
         return ScanHistoryScreen(
           key: globalKey,
           viewModel: context.watch(),
         );
-    }
+      }
   }
 }

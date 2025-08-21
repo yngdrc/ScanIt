@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart';
-import 'package:scanit/navigation/navigation_key.dart';
+import 'package:scanit/core/navigation/navigation_key.dart';
 
 class NavigationModel {
   const NavigationModel({
