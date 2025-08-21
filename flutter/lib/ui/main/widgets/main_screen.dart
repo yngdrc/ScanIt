@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart' hide NavigationBar;
+import 'package:flutter/material.dart' hide NavigationBar, AppBar;
+import 'package:scanit/ui/colors.dart';
 
+import '../../../core/appbar/app_bar.dart';
 import '../../../core/navigation/navigation_bar.dart';
 import '../../../core/navigation/navigation_key.dart';
 import '../../../core/navigation/navigation_model.dart';
@@ -21,6 +23,8 @@ class _MainScreenState extends State<MainScreen> {
   ].map((navigationKey) => navigationKey.createNavigationModel()).toList();
 
   NavigationKey _currentNavigationKey = NavigationKey.scanner;
+
+  bool get extendBody => _currentNavigationKey == NavigationKey.scanner;
 
   @override
   void dispose() {
@@ -46,16 +50,22 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        title: Text(
-          _currentNavigationKey.title,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.normal,
-          ),
-        ),
-        centerTitle: _currentNavigationKey == NavigationKey.scanner,
+        title: _currentNavigationKey.title,
+        backgroundColor: _currentNavigationKey == NavigationKey.scanner
+            ? Colors.transparent
+            : ScanItColors.surface,
+        textColor: _currentNavigationKey == NavigationKey.scanner
+            ? Colors.white
+            : Colors.black,
+        fontSize: _currentNavigationKey == NavigationKey.scanner
+            ? 20
+            : 48,
+        fontWeight: _currentNavigationKey == NavigationKey.scanner
+            ? FontWeight.w500
+            : FontWeight.w500,
+        titleAlignment: _currentNavigationKey == NavigationKey.scanner
+            ? Alignment.center
+            : Alignment.centerLeft
       ),
       body: PageView(
         controller: _pageController,
@@ -65,8 +75,8 @@ class _MainScreenState extends State<MainScreen> {
           return destination.createPage(context, _bottomNavigationBarKey);
         }).toList(),
       ),
-      extendBody: true,
-      extendBodyBehindAppBar: _currentNavigationKey == NavigationKey.scanner,
+      extendBody: extendBody,
+      extendBodyBehindAppBar: extendBody,
       bottomNavigationBar: NavigationBar(
         key: _bottomNavigationBarKey,
         destinations: _destinations,

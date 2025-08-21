@@ -8,11 +8,13 @@ class NavigationDestination extends StatelessWidget {
     super.key,
     required this.navigationKey,
     required this.isSelected,
+    required this.isLightBackground,
     required this.onTap,
   });
 
   final NavigationKey navigationKey;
   final bool isSelected;
+  final bool isLightBackground;
   final ValueChanged<NavigationKey> onTap;
 
   @override
@@ -27,7 +29,13 @@ class NavigationDestination extends StatelessWidget {
             width: 48,
             height: 48,
             color: isSelected ? Colors.black : Colors.transparent,
-            child: Icon(navigationKey.icon, size: 24, color: Colors.white),
+            child: Icon(
+              navigationKey.icon,
+              size: 24,
+              color: !isLightBackground || isSelected
+                  ? Colors.white
+                  : Colors.black.withValues(alpha: 0.6),
+            ),
           ),
         ),
       ),

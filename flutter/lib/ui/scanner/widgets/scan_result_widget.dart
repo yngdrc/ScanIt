@@ -26,7 +26,7 @@ class ScanResultWidget extends StatelessWidget {
             child: Container(
               width: 260,
               height: 85,
-              color: Colors.black.withValues(alpha: 0.3),
+              color: Colors.white.withValues(alpha: 0.3),
               padding: EdgeInsets.all(19),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,

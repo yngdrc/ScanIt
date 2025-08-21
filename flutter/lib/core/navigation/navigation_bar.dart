@@ -23,9 +23,8 @@ class NavigationBar extends StatelessWidget {
       padding: EdgeInsets.all(34),
       child: SafeArea(
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           mainAxisSize: MainAxisSize.min,
-          spacing: 40,
           children: destinations.map((destination) {
             final isSelected =
                 destination.navigationKey == currentNavigationKey;
@@ -33,6 +32,7 @@ class NavigationBar extends StatelessWidget {
             return NavigationDestination(
               navigationKey: destination.navigationKey,
               isSelected: isSelected,
+              isLightBackground: currentNavigationKey != NavigationKey.scanner,
               onTap: onDestinationSelected,
             );
           }).toList(),
