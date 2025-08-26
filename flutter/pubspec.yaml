@@ -45,6 +45,9 @@ dependencies:
   mobkit_dashed_border: ^0.0.8
   provider: ^6.1.5
   material_symbols_icons: ^4.2867.0
+  flutter_constraintlayout: ^1.7.0-stable
+  flutter_map: ^8.2.1
+  latlong2: ^0.9.1
 
 dev_dependencies:
   flutter_test:
