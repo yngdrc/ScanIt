@@ -1,4 +1,4 @@
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:uuid/uuid.dart';
 
 import '../core/local_model.dart';
@@ -24,8 +24,10 @@ class BarcodeLocalModel implements LocalModel {
     : uuid = UuidValue.fromString(json['uuid'] as String),
       scannedAtMillis = json['scannedAtMillis'] as int,
       barcodeData = json['barcodeData'] as String,
-      barcodeType = BarcodeType.fromRawValue(json['barcodeType'] as int),
-      barcodeFormat = BarcodeFormat.fromRawValue(json['barcodeFormat'] as int);
+      barcodeType = BarcodeType.values.elementAt(json['barcodeType'] as int),
+      barcodeFormat = BarcodeFormat.values.elementAt(
+        json['barcodeFormat'] as int,
+      );
 
   static BarcodeLocalModel? fromBarcode(Barcode barcode) {
     final barcodeData = barcode.rawValue;
@@ -46,7 +48,7 @@ class BarcodeLocalModel implements LocalModel {
     'uuid': uuid.toString(),
     'scannedAtMillis': scannedAtMillis,
     'barcodeData': barcodeData,
-    'barcodeType': barcodeType.rawValue,
+    'barcodeType': barcodeType.index,
     'barcodeFormat': barcodeFormat.rawValue,
   };
 

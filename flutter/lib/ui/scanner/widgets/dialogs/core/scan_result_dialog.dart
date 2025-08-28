@@ -2,8 +2,8 @@ import 'dart:ui';
 
 import 'package:barcode_widget/barcode_widget.dart' as barcode_widget;
 import 'package:flutter/material.dart';
+import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:scanit/ui/scanner/widgets/dialogs/contact_info_dialog.dart';
 import 'package:scanit/ui/scanner/widgets/dialogs/email_dialog.dart';
 import 'package:scanit/ui/scanner/widgets/dialogs/geo_dialog.dart';
@@ -85,31 +85,32 @@ class ScanResultDialog extends StatelessWidget {
   }
 
   Widget _buildDialogContent() {
-    switch (barcode.type) {
-      case BarcodeType.contactInfo:
-        return ContactInfoDialog(contactInfo: barcode.contactInfo!);
-      case BarcodeType.email:
-        return EmailDialog(email: barcode.email!);
-      case BarcodeType.phone:
-        return PhoneDialog(phone: barcode.phone!);
-      case BarcodeType.sms:
-        return SmsDialog(sms: barcode.sms!);
-      case BarcodeType.url:
-        return UrlDialog(url: barcode.url!);
-      case BarcodeType.wifi:
-        return WifiDialog(wifi: barcode.wifi!);
-      case BarcodeType.geo:
-        return GeoDialog(geoPoint: barcode.geoPoint!);
-      case BarcodeType.calendarEvent:
-        return CalendarEventDialog(calendarEvent: barcode.calendarEvent!);
-      case BarcodeType.driverLicense:
-        return DriverLicenseDialog(driverLicense: barcode.driverLicense!);
-      default:
-        return Text(
-          'Data: ${barcode.rawValue}',
-          style: TextStyle(color: Colors.white),
-        );
-    }
+    return Column();
+    // switch (barcode.type) {
+    //   case BarcodeType.contactInfo:
+    //     return ContactInfoDialog(contactInfo: barcode.contactInfo!);
+    //   case BarcodeType.email:
+    //     return EmailDialog(email: barcode.email!);
+    //   case BarcodeType.phone:
+    //     return PhoneDialog(phone: barcode.phone!);
+    //   case BarcodeType.sms:
+    //     return SmsDialog(sms: barcode.sms!);
+    //   case BarcodeType.url:
+    //     return UrlDialog(url: barcode.url!);
+    //   case BarcodeType.wifi:
+    //     return WifiDialog(wifi: barcode.wifi!);
+    //   case BarcodeType.geo:
+    //     return GeoDialog(geoPoint: barcode.geoPoint!);
+    //   case BarcodeType.calendarEvent:
+    //     return CalendarEventDialog(calendarEvent: barcode.calendarEvent!);
+    //   case BarcodeType.driverLicense:
+    //     return DriverLicenseDialog(driverLicense: barcode.driverLicense!);
+    //   default:
+    //     return Text(
+    //       'Data: ${barcode.rawValue}',
+    //       style: TextStyle(color: Colors.white),
+    //     );
+    // }
   }
 
   static Future<dynamic> show({
