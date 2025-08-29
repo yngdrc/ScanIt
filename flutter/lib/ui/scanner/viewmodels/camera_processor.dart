@@ -5,8 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:scanit/plugins/converter_plugin.dart';
 
-import '../painters/barcode_detector_painter.dart';
-
 class CameraProcessor {
   final BarcodeScanner _barcodeScanner = BarcodeScanner();
   final _orientations = {
@@ -19,15 +17,36 @@ class CameraProcessor {
   bool _canProcess = true;
   bool _isBusy = false;
 
+  Future<(List<Barcode>, InputImage)?> processImage(
+    CameraController cameraController,
+    CameraImage image,
+  ) async {
+    if (!_canProcess) return null;
+    if (_isBusy) return null;
+    _isBusy = true;
+
+    final inputImage = await _inputImageFromCameraImage(
+      cameraController,
+      image,
+    );
+
+    if (inputImage == null) return null;
+
+    final barcodes = await _barcodeScanner.processImage(inputImage);
+    _isBusy = false;
+
+    return (barcodes, inputImage);
+  }
+
   Future<InputImage?> _inputImageFromCameraImage(
     CameraController cameraController,
-    CameraDescription cameraDescription,
     CameraImage image,
   ) async {
     // get image rotation
     // it is used in android to convert the InputImage from Dart to Java: https://github.com/flutter-ml/google_ml_kit_flutter/blob/master/packages/google_mlkit_commons/android/src/main/java/com/google_mlkit_commons/InputImageConverter.java
     // `rotation` is not used in iOS to convert the InputImage from Dart to Obj-C: https://github.com/flutter-ml/google_ml_kit_flutter/blob/master/packages/google_mlkit_commons/ios/Classes/MLKVisionImage%2BFlutterPlugin.m
     // in both platforms `rotation` and `camera.lensDirection` can be used to compensate `x` and `y` coordinates on a canvas: https://github.com/flutter-ml/google_ml_kit_flutter/blob/master/packages/example/lib/vision_detector_views/painters/coordinates_translator.dart
+    final cameraDescription = cameraController.description;
     final sensorOrientation = cameraDescription.sensorOrientation;
     InputImageRotation? rotation;
     if (Platform.isIOS) {
@@ -89,29 +108,6 @@ class CameraProcessor {
         bytesPerRow: plane.bytesPerRow, // used only in iOS
       ),
     );
-  }
-
-  Future<(List<Barcode>, InputImage)?> processImage(
-    CameraController cameraController,
-    CameraDescription cameraDescription,
-    CameraImage image,
-  ) async {
-    if (!_canProcess) return null;
-    if (_isBusy) return null;
-    _isBusy = true;
-
-    final inputImage = await _inputImageFromCameraImage(
-      cameraController,
-      cameraDescription,
-      image,
-    );
-
-    if (inputImage == null) return null;
-
-    final barcodes = await _barcodeScanner.processImage(inputImage);
-    _isBusy = false;
-
-    return (barcodes, inputImage);
   }
 
   void dispose() {

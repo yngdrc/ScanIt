@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 
 import 'core/scan_result_dialog_widgets.dart';
 
 class DriverLicenseDialog extends StatelessWidget {
   const DriverLicenseDialog({super.key, required this.driverLicense});
 
-  final DriverLicense driverLicense;
+  final BarcodeDriverLicense driverLicense;
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +20,6 @@ class DriverLicenseDialog extends StatelessWidget {
           values: [
             [
               driverLicense.firstName!,
-              driverLicense.middleName!,
               driverLicense.lastName!,
             ].join(' '),
           ],
@@ -40,7 +39,7 @@ class DriverLicenseDialog extends StatelessWidget {
         DialogField(label: 'Expiry date', values: [driverLicense.expiryDate!]),
         DialogField(
           label: 'Issuing country',
-          values: [driverLicense.issuingCountry!],
+          values: [driverLicense.country!],
         ),
         DialogField(
           label: 'License number',

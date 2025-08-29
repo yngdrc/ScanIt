@@ -1,23 +1,10 @@
 import 'dart:async';
-import 'dart:io';
-import 'dart:ui';
 
-import 'package:barcode_widget/barcode_widget.dart' as barcode_widget;
 import 'package:camera/camera.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_constraintlayout/flutter_constraintlayout.dart';
-import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
-import 'package:material_symbols_icons/material_symbols_icons.dart';
-import 'package:mobkit_dashed_border/mobkit_dashed_border.dart';
-import 'package:nil/nil.dart';
 import 'package:scanit/ui/scanner/viewmodels/scanner_view_model.dart';
 import 'package:scanit/ui/scanner/widgets/dialogs/core/scan_result_dialog.dart';
-import 'package:scanit/utils/barcode_utils.dart';
 
-import '../painters/barcode_detector_painter.dart';
-import 'mobile_scanner_detection_mode.dart';
 import 'mobile_scanner_overlay.dart';
 
 class ScannerScreen extends StatefulWidget {
@@ -34,18 +21,11 @@ class _ScannerScreenState extends State<ScannerScreen>
   @override
   void initState() {
     super.initState();
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
 
     WidgetsBinding.instance.addObserver(this);
     unawaited(
       widget.viewModel.initializeCamera().then((cameraController) async {
         if (!mounted || cameraController == null) return;
-        await cameraController.startImageStream((image) async {
-          await widget.viewModel.processCameraImage(image);
-        });
 
         setState(() {});
       }),
@@ -55,34 +35,31 @@ class _ScannerScreenState extends State<ScannerScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeRight,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
-
-    widget.viewModel.clear();
+    unawaited(widget.viewModel.clear());
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final cameraController = widget.viewModel.cameraController;
-
-    if (cameraController == null || !cameraController.value.isInitialized) {
-      return;
-    }
-
     if (state == AppLifecycleState.inactive) {
-      widget.viewModel.clear();
+      unawaited(widget.viewModel.clear());
     } else if (state == AppLifecycleState.resumed) {
-      unawaited(
-        widget.viewModel.initializeCameraController(
-          cameraController.description,
-        ),
-      );
+      unawaited(widget.viewModel.initializeCamera());
     }
+  }
+
+  Future<void> startImageStream(CameraController cameraController) async {
+    await widget.viewModel.startImageStream(cameraController, (barcode) async {
+      if (!mounted) return;
+      await ScanResultDialog.show(
+        context: context,
+        barcode: barcode,
+        onDismiss: () async {
+          widget.viewModel.clearBarcode();
+          await startImageStream(cameraController);
+        },
+      );
+    });
   }
 
   Rect _getScanWindow(BoxConstraints constraints) {
@@ -101,7 +78,7 @@ class _ScannerScreenState extends State<ScannerScreen>
 
   Widget _buildCameraPreview() {
     final cameraController = widget.viewModel.cameraController;
-    if (cameraController == null || !cameraController.value.isInitialized) {
+    if (cameraController == null) {
       return const Center(child: CircularProgressIndicator());
     }
 
@@ -110,30 +87,29 @@ class _ScannerScreenState extends State<ScannerScreen>
         return ValueListenableBuilder(
           valueListenable: cameraController,
           builder: (_, value, _) {
+            if (!value.isInitialized) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
             final size = MediaQuery.of(context).size;
             var scale = size.aspectRatio * cameraController.value.aspectRatio;
             if (scale < 1) scale = 1 / scale;
 
             return Stack(
               children: [
-                // Transform.scale(
-                //   scale: scale,
-                //   child: Center(child: cameraController.buildPreview()),
-                // ),
-                CameraPreview(
-                  cameraController,
-                  child: widget.viewModel.customPaint,
+                Transform.scale(
+                  scale: scale,
+                  child: Center(child: CameraPreview(cameraController)),
                 ),
-                // MobileScannerOverlay(
-                //   constraints: constraints,
-                //   barcode: widget.viewModel.barcode,
-                //   detectionMode: widget.viewModel.detectionMode,
-                //   onModeSelected: (mode) {},
-                //   isFlashlightOn: false,
-                //   onFlashlightToggle: () {},
-                //   onCameraSwitch: () {},
-                // ),
-                // _customPaint ?? Column(),
+                MobileScannerOverlay(
+                  constraints: constraints,
+                  barcode: widget.viewModel.barcode,
+                  detectionMode: widget.viewModel.detectionMode,
+                  onModeSelected: (mode) {},
+                  isFlashlightOn: false,
+                  onFlashlightToggle: () {},
+                  onCameraSwitch: () {},
+                ),
               ],
             );
           },

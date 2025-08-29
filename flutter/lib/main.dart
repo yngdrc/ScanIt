@@ -10,7 +10,7 @@ import 'package:scanit/utils/theme_utils.dart';
 
 import 'data/services/database_service.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const ScanItApp());
 }
@@ -36,7 +36,7 @@ class ScanItApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (context) {
-            return ScannerViewModel(barcodeRepository: context.read());
+            return ScannerViewModel();
           },
         ),
         ChangeNotifierProvider(

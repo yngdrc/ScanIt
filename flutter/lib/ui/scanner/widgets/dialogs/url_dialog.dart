@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 
 import 'core/scan_result_dialog_widgets.dart';
 
 class UrlDialog extends StatelessWidget {
   const UrlDialog({super.key, required this.url});
 
-  final UrlBookmark url;
+  final BarcodeUrl url;
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +16,7 @@ class UrlDialog extends StatelessWidget {
       spacing: 16,
       children: [
         DialogField(label: 'QR Type', values: [BarcodeType.url.name]),
-        DialogField(label: url.title ?? 'Url', values: [url.url]),
+        DialogField(label: url.title ?? 'Url', values: [url.url!]),
       ],
     );
   }

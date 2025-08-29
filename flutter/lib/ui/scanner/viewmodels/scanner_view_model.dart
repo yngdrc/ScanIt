@@ -2,37 +2,28 @@ import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
-import 'package:scanit/plugins/converter_plugin.dart';
 import 'package:scanit/ui/scanner/viewmodels/camera_processor.dart';
 import 'package:scanit/ui/scanner/widgets/mobile_scanner_detection_mode.dart';
 
 import '../../../data/repositories/barcode/barcode_repository_local.dart';
-import '../../../domain/models/barcode/barcode_local_model.dart';
-import '../painters/barcode_detector_painter.dart';
+import '../widgets/dialogs/core/scan_result_dialog.dart';
 
 class ScannerViewModel extends ChangeNotifier {
-  ScannerViewModel({required BarcodeRepositoryLocal barcodeRepository})
-    : _barcodeRepository = barcodeRepository;
+  ScannerViewModel();
 
   CameraController? _cameraController;
-  final CameraProcessor _cameraProcessor = CameraProcessor();
 
   CameraController? get cameraController => _cameraController;
 
+  final CameraProcessor _cameraProcessor = CameraProcessor();
   List<CameraDescription> _cameras = [];
 
-  List<CameraDescription> get cameras => _cameras;
-  int _cameraIndex = -1;
-
-  int get cameraIndex => _cameraIndex;
-
-  final BarcodeRepositoryLocal _barcodeRepository;
   Barcode? _barcode;
 
   Barcode? get barcode => _barcode;
-  DetectionMode _detectionMode = DetectionMode.ocr;
+
+  final DetectionMode _detectionMode = DetectionMode.barcode;
 
   DetectionMode get detectionMode => _detectionMode;
 
@@ -40,82 +31,117 @@ class ScannerViewModel extends ChangeNotifier {
 
   CustomPaint? get customPaint => _customPaint;
 
-  Future<CameraController?> initializeCamera() async {
+  Future<CameraController?> initializeCamera({
+    CameraDescription? cameraDescription,
+  }) async {
     try {
-      _cameras = await availableCameras();
-      if (cameras.isEmpty) return null;
+      final currentCameraController = _cameraController;
 
-      return await initializeCameraController(_cameras.first);
-    } on CameraException catch (e) {
+      if (cameraDescription == null) {
+        final cameras = await availableCameras();
+        _cameras = cameras;
+        if (cameras.isEmpty) return null;
+
+        cameraDescription = cameras.firstWhere(
+          (camera) => currentCameraController == null
+              ? camera.lensDirection == CameraLensDirection.back
+              : camera.lensDirection ==
+                    currentCameraController.description.lensDirection,
+          orElse: () => cameras.first,
+        );
+      }
+
+      final CameraController cameraController = CameraController(
+        cameraDescription,
+        ResolutionPreset.high,
+        enableAudio: false,
+        imageFormatGroup: Platform.isAndroid
+            ? ImageFormatGroup.nv21
+            : ImageFormatGroup.bgra8888,
+      );
+
+      await cameraController
+          .initialize()
+          .then(
+            (_) {
+              _cameraController = cameraController;
+            },
+            onError: (_) {
+              _cameraController = null;
+            },
+          )
+          .whenComplete(() {
+            _cameraProcessor.dispose();
+
+            if (currentCameraController?.value.isStreamingImages == true) {
+              currentCameraController?.stopImageStream();
+            }
+
+            currentCameraController?.dispose();
+            notifyListeners();
+          });
+
+      return cameraController;
+    } on CameraException {
       return null;
     }
   }
 
-  Future<CameraController?> initializeCameraController(
-    CameraDescription cameraDescription,
+  Future<void> startImageStream(
+    CameraController cameraController,
+    Function(Barcode) onImageProcessed,
   ) async {
-    _cameraIndex = cameras.indexOf(cameraDescription);
-    final CameraController cameraController = CameraController(
-      cameraDescription,
-      ResolutionPreset.max,
-      enableAudio: false,
-      imageFormatGroup: Platform.isAndroid
-          ? ImageFormatGroup.nv21
-          : ImageFormatGroup.bgra8888,
-    );
-
-    _cameraController = cameraController;
-
-    try {
-      return await cameraController.initialize().then((_) {
-        return cameraController;
+    await cameraController.startImageStream((image) async {
+      await _processCameraImage(image, (barcode) async {
+        await cameraController.stopImageStream();
+        onImageProcessed(barcode);
       });
-    } on CameraException catch (e) {
-      return null;
+    });
+  }
+
+  Future<void> stopImageStream(CameraController cameraController) async {
+    if (cameraController.value.isStreamingImages) {
+      await cameraController.stopImageStream();
     }
   }
 
-  Future<void> processCameraImage(CameraImage image) async {
+  Future<void> _processCameraImage(
+    CameraImage image,
+    Function(Barcode) onImageProcessed,
+  ) async {
     final cameraController = _cameraController;
     if (cameraController == null || !cameraController.value.isInitialized) {
       return;
     }
 
-    final cameraIndex = _cameraIndex;
-    final cameras = _cameras;
-    if (cameras.isEmpty || cameraIndex < 0) return;
-    final cameraDescription = cameras[cameraIndex];
-
-    await _cameraProcessor.processImage(
-      cameraController,
-      cameraDescription,
-      image
-    ).then((data) {
+    await _cameraProcessor.processImage(cameraController, image).then((data) {
       if (data == null) return;
+
       final barcodes = data.$1;
+      if (barcodes.isEmpty) return;
+
       final inputImage = data.$2;
 
-      if (inputImage.metadata?.size != null &&
-          inputImage.metadata?.rotation != null) {
-        final painter = BarcodeDetectorPainter(
-          barcodes,
-          inputImage.metadata!.size,
-          inputImage.metadata!.rotation,
-          cameraDescription.lensDirection,
-        );
-        _customPaint = CustomPaint(painter: painter);
-      } else {
-        _customPaint = null;
-      }
-
+      _barcode = barcodes.first;
       notifyListeners();
+
+      onImageProcessed(barcodes.first);
     });
   }
 
-  void clear() {
-    _cameraProcessor.dispose();
-    _cameraController?.dispose();
-
+  void clearBarcode() {
+    _barcode = null;
     notifyListeners();
+  }
+
+  Future<void> clear() async {
+    _cameraProcessor.dispose();
+
+    final cameraController = _cameraController;
+    if (cameraController?.value.isStreamingImages == true) {
+      await cameraController?.stopImageStream();
+    }
+
+    await cameraController?.dispose();
   }
 }
