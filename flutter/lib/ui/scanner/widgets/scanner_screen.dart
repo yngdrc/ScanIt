@@ -4,6 +4,7 @@ import 'package:camera/camera.dart';
 import 'package:command_it/command_it.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
+import 'package:nil/nil.dart';
 import 'package:scanit/ui/scanner/viewmodels/scanner_view_model.dart';
 import 'package:scanit/ui/scanner/widgets/dialogs/core/scan_result_dialog.dart';
 import 'package:scanit/ui/scanner/widgets/mobile_scanner_detection_mode.dart';
@@ -43,7 +44,7 @@ class _ScannerScreenState extends State<ScannerScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.inactive) {
-      unawaited(widget.viewModel.value.cameraController?.dispose());
+      unawaited(widget.viewModel.disposeCamera());
     } else if (state == AppLifecycleState.resumed) {
       unawaited(widget.viewModel.initializeScanner());
     }
@@ -76,8 +77,11 @@ class _ScannerScreenState extends State<ScannerScreen>
           valueListenable: widget.viewModel,
           builder: (_, uiState, _) {
             final cameraController = uiState.cameraController;
-            if (cameraController == null ||
-                !cameraController.value.isInitialized) {
+            if (cameraController == null) {
+              return Nil();
+            }
+
+            if (!cameraController.value.isInitialized) {
               return const Center(child: CircularProgressIndicator());
             }
 

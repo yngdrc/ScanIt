@@ -23,7 +23,7 @@ class CameraProcessor {
   bool _canProcess = true;
   bool _isBusy = false;
 
-  Future<(List<Barcode>, InputImage)?> processBarcode(
+  Future<(List<Barcode>, InputImage)?> processBarcodes(
     CameraController cameraController,
     CameraImage image,
   ) async {
