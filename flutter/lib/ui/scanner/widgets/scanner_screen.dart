@@ -1,9 +1,12 @@
 import 'dart:async';
 
 import 'package:camera/camera.dart';
+import 'package:command_it/command_it.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:scanit/ui/scanner/viewmodels/scanner_view_model.dart';
 import 'package:scanit/ui/scanner/widgets/dialogs/core/scan_result_dialog.dart';
+import 'package:scanit/ui/scanner/widgets/mobile_scanner_detection_mode.dart';
 
 import 'mobile_scanner_overlay.dart';
 
@@ -18,48 +21,42 @@ class ScannerScreen extends StatefulWidget {
 
 class _ScannerScreenState extends State<ScannerScreen>
     with WidgetsBindingObserver {
+  ListenableSubscription? _barcodeSubscription;
+
   @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addObserver(this);
-    unawaited(
-      widget.viewModel.initializeCamera().then((cameraController) async {
-        if (!mounted || cameraController == null) return;
-
-        setState(() {});
-      }),
-    );
+    _barcodeSubscription = widget.viewModel.barcodeChanges(_onBarcodeChanged);
+    unawaited(widget.viewModel.initializeScanner());
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    unawaited(widget.viewModel.clear());
+    _barcodeSubscription?.cancel();
+    widget.viewModel.dispose();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.inactive) {
-      unawaited(widget.viewModel.clear());
+      unawaited(widget.viewModel.value.cameraController?.dispose());
     } else if (state == AppLifecycleState.resumed) {
-      unawaited(widget.viewModel.initializeCamera());
+      unawaited(widget.viewModel.initializeScanner());
     }
   }
 
-  Future<void> startImageStream(CameraController cameraController) async {
-    await widget.viewModel.startImageStream(cameraController, (barcode) async {
-      if (!mounted) return;
-      await ScanResultDialog.show(
-        context: context,
-        barcode: barcode,
-        onDismiss: () async {
-          widget.viewModel.clearBarcode();
-          await startImageStream(cameraController);
-        },
-      );
-    });
+  void _onBarcodeChanged(Barcode? barcode) {
+    if (barcode == null) return;
+
+    ScanResultDialog.show(
+      context: context,
+      barcode: barcode,
+      onDismiss: widget.viewModel.clearScanResult,
+    );
   }
 
   Rect _getScanWindow(BoxConstraints constraints) {
@@ -73,21 +70,14 @@ class _ScannerScreenState extends State<ScannerScreen>
 
   @override
   Widget build(BuildContext context) {
-    return _buildCameraPreview();
-  }
-
-  Widget _buildCameraPreview() {
-    final cameraController = widget.viewModel.cameraController;
-    if (cameraController == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     return LayoutBuilder(
       builder: (_, constraints) {
         return ValueListenableBuilder(
-          valueListenable: cameraController,
-          builder: (_, value, _) {
-            if (!value.isInitialized) {
+          valueListenable: widget.viewModel,
+          builder: (_, uiState, _) {
+            final cameraController = uiState.cameraController;
+            if (cameraController == null ||
+                !cameraController.value.isInitialized) {
               return const Center(child: CircularProgressIndicator());
             }
 
@@ -103,12 +93,54 @@ class _ScannerScreenState extends State<ScannerScreen>
                 ),
                 MobileScannerOverlay(
                   constraints: constraints,
-                  barcode: widget.viewModel.barcode,
-                  detectionMode: widget.viewModel.detectionMode,
-                  onModeSelected: (mode) {},
-                  isFlashlightOn: false,
-                  onFlashlightToggle: () {},
-                  onCameraSwitch: () {},
+                  barcode: uiState.barcode,
+                  detectionMode: uiState.detectionMode,
+                  onModeSelected: (mode) {
+                    DetectionMode detectionMode;
+                    switch (uiState.detectionMode) {
+                      case DetectionMode.barcode:
+                        detectionMode = DetectionMode.ocr;
+                      case DetectionMode.ocr:
+                        detectionMode = DetectionMode.barcode;
+                    }
+
+                    unawaited(
+                      widget.viewModel.initializeScanner(
+                        detectionMode: detectionMode,
+                      ),
+                    );
+                  },
+                  isFlashlightOn:
+                      cameraController.value.flashMode == FlashMode.torch,
+                  onFlashlightToggle: () {
+                    FlashMode flashMode;
+                    switch (cameraController.value.flashMode) {
+                      case FlashMode.off:
+                        flashMode = FlashMode.torch;
+                      case FlashMode.auto:
+                      case FlashMode.always:
+                      case FlashMode.torch:
+                        flashMode = FlashMode.off;
+                    }
+
+                    unawaited(cameraController.setFlashMode(flashMode));
+                  },
+                  onCameraSwitch: () {
+                    CameraLensDirection cameraLensDirection;
+                    switch (cameraController.value.description.lensDirection) {
+                      case CameraLensDirection.back:
+                        cameraLensDirection = CameraLensDirection.front;
+                      case CameraLensDirection.front:
+                      case CameraLensDirection.external:
+                        cameraLensDirection = CameraLensDirection.back;
+                    }
+
+                    unawaited(
+                      widget.viewModel.initializeScanner(
+                        cameraLensDirection: cameraLensDirection,
+                      ),
+                    );
+                  },
                 ),
               ],
             );
