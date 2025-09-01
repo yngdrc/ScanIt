@@ -7,10 +7,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:scanit/ui/scanner/painters/barcode_detector_painter.dart';
 import 'package:scanit/ui/scanner/viewmodels/camera_processor.dart';
 import 'package:scanit/ui/scanner/widgets/mobile_scanner_detection_mode.dart';
 
 import '../../../data/repositories/barcode/barcode_repository_local.dart';
+import '../painters/text_detector_painter.dart';
 import '../widgets/dialogs/core/scan_result_dialog.dart';
 
 class ScannerUiState {
@@ -19,37 +21,74 @@ class ScannerUiState {
     required this.detectionMode,
     required this.barcode,
     required this.ocrText,
+    required this.size,
+    required this.rotation,
   });
 
   final CameraController? cameraController;
   final DetectionMode detectionMode;
   final Barcode? barcode;
-  final String? ocrText;
+  final RecognizedText? ocrText;
+  final Size? size;
+  final InputImageRotation? rotation;
+
+  CustomPaint? get customPaint {
+    final size = this.size;
+    final rotation = this.rotation;
+    final barcode = this.barcode;
+    final ocrText = this.ocrText;
+    final lensDirection = cameraController?.description.lensDirection;
+
+    if (size == null || rotation == null || lensDirection == null) return null;
+
+    CustomPainter painter;
+    switch (detectionMode) {
+      case DetectionMode.barcode when barcode != null:
+        painter = BarcodeDetectorPainter(
+          [barcode],
+          size,
+          rotation,
+          lensDirection,
+        );
+      case DetectionMode.ocr when ocrText != null:
+        painter = TextRecognizerPainter(ocrText, size, rotation, lensDirection);
+      default:
+        return null;
+    }
+
+    return CustomPaint(painter: painter);
+  }
 
   ScannerUiState copyWith({
     required CameraController? cameraController,
     required DetectionMode detectionMode,
     required Barcode? barcode,
-    required String? ocrText,
+    required RecognizedText? ocrText,
+    required Size? size,
+    required InputImageRotation? rotation,
   }) {
     return ScannerUiState(
       cameraController: cameraController,
       detectionMode: detectionMode,
       barcode: barcode,
       ocrText: ocrText,
+      size: size,
+      rotation: rotation,
     );
   }
 }
 
 class ScannerViewModel extends ValueNotifier<ScannerUiState> {
   ScannerViewModel({required DetectionMode initialDetectionMode})
-      : _cameraProcessor = CameraProcessor(),
-        super(
+    : _cameraProcessor = CameraProcessor(),
+      super(
         ScannerUiState(
           cameraController: null,
           detectionMode: initialDetectionMode,
           barcode: null,
           ocrText: null,
+          size: null,
+          rotation: null,
         ),
       );
 
@@ -58,7 +97,7 @@ class ScannerViewModel extends ValueNotifier<ScannerUiState> {
 
   ListenableSubscription barcodeChanges(Function(Barcode?) onBarcodeChanged) {
     return select(
-          (uiState) => uiState.barcode,
+      (uiState) => uiState.barcode,
     ).listen((barcode, _) => onBarcodeChanged(barcode));
   }
 
@@ -69,8 +108,8 @@ class ScannerViewModel extends ValueNotifier<ScannerUiState> {
     final currentCameraController = value.cameraController;
     final cameras = await availableCameras();
     final cameraDescription = cameras.firstWhere(
-          (camera) =>
-      camera.lensDirection ==
+      (camera) =>
+          camera.lensDirection ==
           (cameraLensDirection ??
               currentCameraController?.description.lensDirection ??
               CameraLensDirection.back),
@@ -87,63 +126,75 @@ class ScannerViewModel extends ValueNotifier<ScannerUiState> {
     value = value.copyWith(
       cameraController: cameraController,
       detectionMode: detectionMode ?? value.detectionMode,
-      barcode: value.barcode,
-      ocrText: value.ocrText,
+      barcode: null,
+      ocrText: null,
+      size: null,
+      rotation: null,
     );
 
     _cameraControllerSubscription = cameraController.listen((cameraValue, _) {
       value = value.copyWith(
         cameraController: cameraController..value = cameraValue,
-        detectionMode: value.detectionMode,
+        detectionMode: detectionMode ?? value.detectionMode,
         barcode: value.barcode,
         ocrText: value.ocrText,
+        size: value.size,
+        rotation: value.rotation,
       );
     });
 
     await currentCameraController?.dispose();
     await cameraController.initialize();
 
-    startScanning(
+    await startScanning(
       cameraController: cameraController,
-      detectionMode: value.detectionMode,
+      detectionMode: detectionMode ?? value.detectionMode,
     );
   }
 
-  void startScanning({
+  Future<void> startScanning({
     required CameraController cameraController,
     required DetectionMode detectionMode,
-  }) {
-    if (value.barcode != null) return;
+  }) async {
+    if (cameraController.value.isStreamingImages) {
+      await cameraController.stopImageStream();
+    }
 
-    cameraController.startImageStream((image) async {
+    await cameraController.startImageStream((image) async {
       switch (detectionMode) {
         case DetectionMode.barcode:
-          await _processBarcode(image, cameraController, (barcode) async {
-            cameraController.stopImageStream();
+          await _processBarcode(image, cameraController, (data) async {
+            // cameraController.stopImageStream();
             value = value.copyWith(
               cameraController: value.cameraController,
-              detectionMode: value.detectionMode,
-              barcode: barcode,
+              detectionMode: detectionMode,
+              barcode: data.$1,
               ocrText: null,
+              size: data.$2.metadata?.size,
+              rotation: data.$2.metadata?.rotation,
             );
           });
         case DetectionMode.ocr:
-          await _processOCR(image, cameraController, (text) async {
-            cameraController.stopImageStream();
+          await _processOCR(image, cameraController, (data) async {
+            // cameraController.stopImageStream();
             value = value.copyWith(
               cameraController: value.cameraController,
-              detectionMode: value.detectionMode,
+              detectionMode: detectionMode,
               barcode: null,
-              ocrText: text,
+              ocrText: data.$1,
+              size: data.$2.metadata?.size,
+              rotation: data.$2.metadata?.rotation,
             );
           });
       }
     });
   }
 
-  Future<void> _processBarcode(CameraImage image,
-      CameraController cameraController,
-      Function(Barcode) onImageProcessed,) async {
+  Future<void> _processBarcode(
+    CameraImage image,
+    CameraController cameraController,
+    Function((Barcode, InputImage)) onImageProcessed,
+  ) async {
     final data = await _cameraProcessor.processBarcode(cameraController, image);
     if (data == null) return;
 
@@ -151,12 +202,14 @@ class ScannerViewModel extends ValueNotifier<ScannerUiState> {
     if (barcodes.isEmpty) return;
 
     final inputImage = data.$2;
-    onImageProcessed(barcodes.first);
+    onImageProcessed((barcodes.first, inputImage));
   }
 
-  Future<void> _processOCR(CameraImage image,
-      CameraController cameraController,
-      Function(String) onTextRecognized,) async {
+  Future<void> _processOCR(
+    CameraImage image,
+    CameraController cameraController,
+    Function((RecognizedText, InputImage)) onTextRecognized,
+  ) async {
     final data = await _cameraProcessor.processOCR(cameraController, image);
     if (data == null) return;
 
@@ -169,6 +222,8 @@ class ScannerViewModel extends ValueNotifier<ScannerUiState> {
       detectionMode: value.detectionMode,
       barcode: null,
       ocrText: null,
+      size: null,
+      rotation: null,
     );
 
     unawaited(initializeScanner());

@@ -36,7 +36,10 @@ class CameraProcessor {
       image,
     );
 
-    if (inputImage == null) return null;
+    if (inputImage == null) {
+      _isBusy = false;
+      return null;
+    }
 
     final barcodes = await _barcodeScanner.processImage(inputImage);
     _isBusy = false;
@@ -44,7 +47,7 @@ class CameraProcessor {
     return (barcodes, inputImage);
   }
 
-  Future<String?> processOCR(
+  Future<(RecognizedText, InputImage)?> processOCR(
     CameraController cameraController,
     CameraImage image,
   ) async {
@@ -57,14 +60,15 @@ class CameraProcessor {
       image,
     );
 
-    if (inputImage == null) return null;
+    if (inputImage == null) {
+      _isBusy = false;
+      return null;
+    }
 
-    final recognizedText = await _textRecognizer.processImage(
-      inputImage,
-    );
+    final recognizedText = await _textRecognizer.processImage(inputImage);
 
     _isBusy = false;
-    return recognizedText.text;
+    return (recognizedText, inputImage);
   }
 
   Future<InputImage?> _inputImageFromCameraImage(

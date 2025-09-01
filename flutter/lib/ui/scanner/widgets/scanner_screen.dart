@@ -28,7 +28,7 @@ class _ScannerScreenState extends State<ScannerScreen>
     super.initState();
 
     WidgetsBinding.instance.addObserver(this);
-    _barcodeSubscription = widget.viewModel.barcodeChanges(_onBarcodeChanged);
+    // _barcodeSubscription = widget.viewModel.barcodeChanges(_onBarcodeChanged);
     unawaited(widget.viewModel.initializeScanner());
   }
 
@@ -89,30 +89,25 @@ class _ScannerScreenState extends State<ScannerScreen>
               children: [
                 Transform.scale(
                   scale: scale,
-                  child: Center(child: CameraPreview(cameraController)),
+                  child: Center(
+                    child: CameraPreview(
+                      cameraController,
+                      child: uiState.customPaint,
+                    ),
+                  ),
                 ),
                 MobileScannerOverlay(
                   constraints: constraints,
-                  barcode: uiState.barcode,
+                  barcode: null,
                   detectionMode: uiState.detectionMode,
-                  onModeSelected: (mode) {
-                    DetectionMode detectionMode;
-                    switch (uiState.detectionMode) {
-                      case DetectionMode.barcode:
-                        detectionMode = DetectionMode.ocr;
-                      case DetectionMode.ocr:
-                        detectionMode = DetectionMode.barcode;
-                    }
-
-                    unawaited(
-                      widget.viewModel.initializeScanner(
-                        detectionMode: detectionMode,
-                      ),
+                  onModeSelected: (mode) async {
+                    await widget.viewModel.initializeScanner(
+                      detectionMode: mode,
                     );
                   },
                   isFlashlightOn:
                       cameraController.value.flashMode == FlashMode.torch,
-                  onFlashlightToggle: () {
+                  onFlashlightToggle: () async {
                     FlashMode flashMode;
                     switch (cameraController.value.flashMode) {
                       case FlashMode.off:
@@ -123,9 +118,9 @@ class _ScannerScreenState extends State<ScannerScreen>
                         flashMode = FlashMode.off;
                     }
 
-                    unawaited(cameraController.setFlashMode(flashMode));
+                    await cameraController.setFlashMode(flashMode);
                   },
-                  onCameraSwitch: () {
+                  onCameraSwitch: () async {
                     CameraLensDirection cameraLensDirection;
                     switch (cameraController.value.description.lensDirection) {
                       case CameraLensDirection.back:
@@ -135,10 +130,8 @@ class _ScannerScreenState extends State<ScannerScreen>
                         cameraLensDirection = CameraLensDirection.back;
                     }
 
-                    unawaited(
-                      widget.viewModel.initializeScanner(
-                        cameraLensDirection: cameraLensDirection,
-                      ),
+                    await widget.viewModel.initializeScanner(
+                      cameraLensDirection: cameraLensDirection,
                     );
                   },
                 ),

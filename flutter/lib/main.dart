@@ -38,7 +38,7 @@ class ScanItApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (context) {
             return ScannerViewModel(
-              initialDetectionMode: DetectionMode.barcode,
+              initialDetectionMode: DetectionMode.ocr,
             );
           },
         ),
