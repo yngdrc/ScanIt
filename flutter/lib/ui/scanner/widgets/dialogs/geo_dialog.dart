@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'core/scan_result_dialog_widgets.dart';
 
 class GeoDialog extends StatelessWidget {
-  GeoDialog({super.key, required GeoPoint geoPoint}) {
-    latLng = LatLng(geoPoint.latitude, geoPoint.longitude);
+  GeoDialog({super.key, required BarcodeGeoPoint geoPoint}) {
+    latLng = LatLng(geoPoint.latitude!, geoPoint.longitude!);
   }
 
   late final LatLng latLng;
@@ -20,7 +20,7 @@ class GeoDialog extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       spacing: 16,
       children: [
-        DialogField(label: 'QR Type', values: [BarcodeType.geo.name]),
+        DialogField(label: 'QR Type', values: [BarcodeType.geoCoordinates.name]),
         DialogField(
           label: 'Coordinates',
           values: ['${latLng.latitude}, ${latLng.longitude}'],

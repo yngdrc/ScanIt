@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 
 import 'core/scan_result_dialog_widgets.dart';
 
 class EmailDialog extends StatelessWidget {
   const EmailDialog({super.key, required this.email});
 
-  final Email email;
+  final BarcodeEmail email;
 
   @override
   Widget build(BuildContext context) {

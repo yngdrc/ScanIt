@@ -1,5 +1,5 @@
 import 'package:barcode_widget/barcode_widget.dart' as barcode_widget;
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 
 extension BarcodeExtension on Barcode {
   barcode_widget.BarcodeType? get barcodeWidgetType {
@@ -22,9 +22,9 @@ extension BarcodeExtension on Barcode {
         return barcode_widget.BarcodeType.Itf;
       case BarcodeFormat.qrCode:
         return barcode_widget.BarcodeType.QrCode;
-      case BarcodeFormat.upcA:
+      case BarcodeFormat.upca:
         return barcode_widget.BarcodeType.CodeUPCA;
-      case BarcodeFormat.upcE:
+      case BarcodeFormat.upce:
         return barcode_widget.BarcodeType.CodeUPCE;
       case BarcodeFormat.pdf417:
         return barcode_widget.BarcodeType.PDF417;

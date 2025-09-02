@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 
 import 'core/scan_result_dialog_widgets.dart';
 
 class CalendarEventDialog extends StatelessWidget {
   const CalendarEventDialog({super.key, required this.calendarEvent});
 
-  final CalendarEvent calendarEvent;
+  final BarcodeCalenderEvent calendarEvent;
 
   @override
   Widget build(BuildContext context) {

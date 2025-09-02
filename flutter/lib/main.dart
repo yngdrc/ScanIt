@@ -5,12 +5,13 @@ import 'package:scanit/ui/colors.dart';
 import 'package:scanit/ui/scan_history/viewmodels/scan_history_view_model.dart';
 import 'package:scanit/ui/scan_history/widgets/scan_history_screen.dart';
 import 'package:scanit/ui/scanner/viewmodels/scanner_view_model.dart';
+import 'package:scanit/ui/scanner/widgets/mobile_scanner_detection_mode.dart';
 import 'package:scanit/ui/scanner/widgets/scanner_screen.dart';
 import 'package:scanit/utils/theme_utils.dart';
 
 import 'data/services/database_service.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const ScanItApp());
 }
@@ -36,7 +37,9 @@ class ScanItApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (context) {
-            return ScannerViewModel(barcodeRepository: context.read());
+            return ScannerViewModel(
+              initialDetectionMode: DetectionMode.ocr,
+            );
           },
         ),
         ChangeNotifierProvider(
