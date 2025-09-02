@@ -7,7 +7,6 @@ import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart
 import 'package:nil/nil.dart';
 import 'package:scanit/ui/scanner/viewmodels/scanner_view_model.dart';
 import 'package:scanit/ui/scanner/widgets/dialogs/core/scan_result_dialog.dart';
-import 'package:scanit/ui/scanner/widgets/mobile_scanner_detection_mode.dart';
 
 import 'mobile_scanner_overlay.dart';
 

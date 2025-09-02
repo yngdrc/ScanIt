@@ -1,10 +1,8 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:async/async.dart';
 import 'package:camera/camera.dart';
 import 'package:command_it/command_it.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
@@ -12,9 +10,7 @@ import 'package:scanit/ui/scanner/painters/barcode_detector_painter.dart';
 import 'package:scanit/ui/scanner/viewmodels/camera_processor.dart';
 import 'package:scanit/ui/scanner/widgets/mobile_scanner_detection_mode.dart';
 
-import '../../../data/repositories/barcode/barcode_repository_local.dart';
 import '../painters/text_detector_painter.dart';
-import '../widgets/dialogs/core/scan_result_dialog.dart';
 
 class ScannerUiState {
   ScannerUiState({
