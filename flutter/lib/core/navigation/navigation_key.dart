@@ -47,7 +47,7 @@ extension NavigationModelExtension on NavigationModel {
   Widget createPage(BuildContext context, GlobalKey bottomNavigationBarKey) {
     switch (navigationKey) {
       case NavigationKey.scanner:
-        return ScannerScreen(key: globalKey, viewModel: context.watch());
+        return ScannerScreen(key: globalKey);
       case NavigationKey.scanHistory:
         return ScanHistoryScreen(key: globalKey, viewModel: context.watch());
     }

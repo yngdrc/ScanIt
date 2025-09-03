@@ -4,8 +4,6 @@ import 'package:scanit/data/repositories/barcode/barcode_repository_local.dart';
 import 'package:scanit/ui/colors.dart';
 import 'package:scanit/ui/scan_history/viewmodels/scan_history_view_model.dart';
 import 'package:scanit/ui/scan_history/widgets/scan_history_screen.dart';
-import 'package:scanit/ui/scanner/viewmodels/scanner_view_model.dart';
-import 'package:scanit/ui/scanner/widgets/mobile_scanner_detection_mode.dart';
 import 'package:scanit/ui/scanner/widgets/scanner_screen.dart';
 import 'package:scanit/utils/theme_utils.dart';
 
@@ -37,13 +35,6 @@ class ScanItApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (context) {
-            return ScannerViewModel(
-              initialDetectionMode: DetectionMode.ocr,
-            );
-          },
-        ),
-        ChangeNotifierProvider(
-          create: (context) {
             return ScanHistoryViewModel(barcodeRepository: context.read());
           },
         ),
@@ -57,7 +48,7 @@ class ScanItApp extends StatelessWidget {
             textTheme: textTheme,
             scaffoldBackgroundColor: ScanItColors.surface,
           ),
-          home: ScannerScreen(viewModel: context.watch()),
+          home: ScannerScreen(),
           routes: <String, WidgetBuilder>{
             '/scanHistory': (context) {
               return ScanHistoryScreen(viewModel: context.watch());

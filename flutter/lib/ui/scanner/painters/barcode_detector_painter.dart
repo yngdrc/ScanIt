@@ -10,11 +10,11 @@ import 'coordinates_translator.dart';
 
 class BarcodeDetectorPainter extends CustomPainter {
   BarcodeDetectorPainter(
-      this.barcodes,
-      this.imageSize,
-      this.rotation,
-      this.cameraLensDirection,
-      );
+    this.barcodes,
+    this.imageSize,
+    this.rotation,
+    this.cameraLensDirection,
+  );
 
   final List<Barcode> barcodes;
   final Size imageSize;
@@ -33,12 +33,14 @@ class BarcodeDetectorPainter extends CustomPainter {
     for (final Barcode barcode in barcodes) {
       final ParagraphBuilder builder = ParagraphBuilder(
         ParagraphStyle(
-            textAlign: TextAlign.left,
-            fontSize: 16,
-            textDirection: TextDirection.ltr),
+          textAlign: TextAlign.left,
+          fontSize: 16,
+          textDirection: TextDirection.ltr,
+        ),
       );
       builder.pushStyle(
-          ui.TextStyle(color: Colors.lightGreenAccent, background: background));
+        ui.TextStyle(color: Colors.lightGreenAccent, background: background),
+      );
       builder.addText('${barcode.displayValue}');
       builder.pop();
 
@@ -63,19 +65,6 @@ class BarcodeDetectorPainter extends CustomPainter {
         rotation,
         cameraLensDirection,
       );
-      // final bottom = translateY(
-      //   barcode.boundingBox.bottom,
-      //   size,
-      //   imageSize,
-      //   rotation,
-      //   cameraLensDirection,
-      // );
-      //
-      // // Draw a bounding rectangle around the barcode
-      // canvas.drawRect(
-      //   Rect.fromLTRB(left, top, right, bottom),
-      //   paint,
-      // );
 
       final List<Offset> cornerPoints = <Offset>[];
       for (final point in barcode.cornerPoints) {
@@ -103,15 +92,13 @@ class BarcodeDetectorPainter extends CustomPainter {
 
       canvas.drawParagraph(
         builder.build()
-          ..layout(ParagraphConstraints(
-            width: (right - left).abs(),
-          )),
+          ..layout(ParagraphConstraints(width: (right - left).abs())),
         Offset(
-            Platform.isAndroid &&
-                cameraLensDirection == CameraLensDirection.front
-                ? right
-                : left,
-            top),
+          Platform.isAndroid && cameraLensDirection == CameraLensDirection.front
+              ? right
+              : left,
+          top,
+        ),
       );
     }
   }

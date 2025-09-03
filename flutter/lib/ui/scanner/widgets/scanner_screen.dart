@@ -1,62 +1,81 @@
-import 'dart:async';
 
 import 'package:camera/camera.dart';
-import 'package:command_it/command_it.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
-import 'package:nil/nil.dart';
-import 'package:scanit/ui/scanner/viewmodels/scanner_view_model.dart';
-import 'package:scanit/ui/scanner/widgets/dialogs/core/scan_result_dialog.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:scanit/ui/scanner/widgets/scanner/scanner.dart';
+import 'package:scanit/ui/scanner/widgets/scanner/scanner_controller.dart';
 
+import '../painters/barcode_detector_painter.dart';
+import '../painters/text_detector_painter.dart';
 import 'mobile_scanner_overlay.dart';
 
 class ScannerScreen extends StatefulWidget {
-  const ScannerScreen({super.key, required this.viewModel});
-
-  final ScannerViewModel viewModel;
+  const ScannerScreen({super.key});
 
   @override
   State<StatefulWidget> createState() => _ScannerScreenState();
 }
 
-class _ScannerScreenState extends State<ScannerScreen>
-    with WidgetsBindingObserver {
-  ListenableSubscription? _barcodeSubscription;
+class _ScannerScreenState extends State<ScannerScreen> {
+  late final ScannerController _scannerController = ScannerController();
+  CustomPaint? _customPaint;
 
-  @override
-  void initState() {
-    super.initState();
+  void _onBarcodesDetected(
+    List<Barcode> barcodes,
+    InputImage inputImage,
+    CameraLensDirection lensDirection,
+  ) {
+    final barcode = barcodes.firstOrNull;
+    final size = inputImage.metadata?.size;
+    final rotation = inputImage.metadata?.rotation;
 
-    WidgetsBinding.instance.addObserver(this);
-    // _barcodeSubscription = widget.viewModel.barcodeChanges(_onBarcodeChanged);
-    unawaited(widget.viewModel.initializeScanner());
-  }
+    if (barcode == null || size == null || rotation == null) {
+      setState(() {
+        _customPaint = null;
+      });
 
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _barcodeSubscription?.cancel();
-    widget.viewModel.dispose();
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive) {
-      unawaited(widget.viewModel.disposeCamera());
-    } else if (state == AppLifecycleState.resumed) {
-      unawaited(widget.viewModel.initializeScanner());
+      return;
     }
+
+    final painter = BarcodeDetectorPainter(
+      [barcode],
+      size,
+      rotation,
+      lensDirection,
+    );
+
+    setState(() {
+      _customPaint = CustomPaint(painter: painter);
+    });
   }
 
-  void _onBarcodeChanged(Barcode? barcode) {
-    if (barcode == null) return;
+  void _onTextDetected(
+    RecognizedText recognizedText,
+    InputImage inputImage,
+    CameraLensDirection lensDirection,
+  ) {
+    final size = inputImage.metadata?.size;
+    final rotation = inputImage.metadata?.rotation;
 
-    ScanResultDialog.show(
-      context: context,
-      barcode: barcode,
-      onDismiss: widget.viewModel.clearScanResult,
+    if (size == null || rotation == null) {
+      setState(() {
+        _customPaint = null;
+      });
+
+      return;
+    }
+
+    CustomPainter painter = TextRecognizerPainter(
+      recognizedText,
+      size,
+      rotation,
+      lensDirection,
     );
+
+    setState(() {
+      _customPaint = CustomPaint(painter: painter);
+    });
   }
 
   Rect _getScanWindow(BoxConstraints constraints) {
@@ -70,79 +89,32 @@ class _ScannerScreenState extends State<ScannerScreen>
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (_, constraints) {
-        return ValueListenableBuilder(
-          valueListenable: widget.viewModel,
-          builder: (_, uiState, _) {
-            final cameraController = uiState.cameraController;
-            if (cameraController == null) {
-              return Nil();
-            }
-
-            if (!cameraController.value.isInitialized) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            final size = MediaQuery.of(context).size;
-            var scale = size.aspectRatio * cameraController.value.aspectRatio;
-            if (scale < 1) scale = 1 / scale;
-
-            return Stack(
-              children: [
-                Transform.scale(
-                  scale: scale,
-                  child: Center(
-                    child: CameraPreview(
-                      cameraController,
-                      child: uiState.customPaint,
-                    ),
-                  ),
-                ),
-                MobileScannerOverlay(
-                  constraints: constraints,
-                  barcode: null,
-                  detectionMode: uiState.detectionMode,
-                  onModeSelected: (mode) async {
-                    await widget.viewModel.initializeScanner(
-                      detectionMode: mode,
-                    );
-                  },
-                  isFlashlightOn:
-                      cameraController.value.flashMode == FlashMode.torch,
-                  onFlashlightToggle: () async {
-                    FlashMode flashMode;
-                    switch (cameraController.value.flashMode) {
-                      case FlashMode.off:
-                        flashMode = FlashMode.torch;
-                      case FlashMode.auto:
-                      case FlashMode.always:
-                      case FlashMode.torch:
-                        flashMode = FlashMode.off;
-                    }
-
-                    await cameraController.setFlashMode(flashMode);
-                  },
-                  onCameraSwitch: () async {
-                    CameraLensDirection cameraLensDirection;
-                    switch (cameraController.value.description.lensDirection) {
-                      case CameraLensDirection.back:
-                        cameraLensDirection = CameraLensDirection.front;
-                      case CameraLensDirection.front:
-                      case CameraLensDirection.external:
-                        cameraLensDirection = CameraLensDirection.back;
-                    }
-
-                    await widget.viewModel.initializeScanner(
-                      cameraLensDirection: cameraLensDirection,
-                    );
-                  },
-                ),
-              ],
-            );
+    return Scanner(
+      controller: _scannerController,
+      // scanWindowInitializer: (constraints) {
+      //   return _getScanWindow(constraints);
+      // },
+      overlayBuilder: (context, constraints, state) {
+        return MobileScannerOverlay(
+          constraints: constraints,
+          barcode: null,
+          detectionMode: state.detectionMode,
+          onModeSelected: (mode) async {
+            await _scannerController.setDetectionMode(mode);
+          },
+          isFlashlightOn:
+              state.cameraController?.value.flashMode == FlashMode.torch,
+          onFlashlightToggle: () async {
+            await _scannerController.toggleTorch();
+          },
+          onCameraSwitch: () async {
+            await _scannerController.switchCamera();
           },
         );
       },
+      onBarcodesDetected: _onBarcodesDetected,
+      onTextDetected: _onTextDetected,
+      child: _customPaint,
     );
   }
 }
