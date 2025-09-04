@@ -10,7 +10,7 @@ import 'mobile_scanner_detection_mode.dart';
 class MobileScannerOverlay extends StatelessWidget {
   MobileScannerOverlay({
     super.key,
-    required this.constraints,
+    required this.scanWindow,
     required this.barcode,
     required this.detectionMode,
     required this.onModeSelected,
@@ -19,7 +19,7 @@ class MobileScannerOverlay extends StatelessWidget {
     required this.onCameraSwitch,
   });
 
-  final BoxConstraints constraints;
+  final Rect scanWindow;
   final Barcode? barcode;
   final DetectionMode detectionMode;
   final ValueChanged<DetectionMode> onModeSelected;
@@ -39,7 +39,7 @@ class MobileScannerOverlay extends StatelessWidget {
     return Stack(
       children: [
         ClipPath(
-          clipper: const _MobileScannerClipper(),
+          clipper: _MobileScannerClipper(scanWindow: scanWindow),
           child: Container(color: Colors.black.withValues(alpha: 0.5)),
         ),
         ConstraintLayout(
@@ -83,7 +83,7 @@ class MobileScannerOverlay extends StatelessWidget {
               onModeSelected: onModeSelected,
             ).applyConstraintId(id: scannerDetectionModePickerId),
             ScanRectangleWidget(
-              constraints: constraints,
+              scanWindow: scanWindow,
               barcode: barcode,
             ).applyConstraintId(id: scanRectangleId),
           ],
@@ -94,18 +94,19 @@ class MobileScannerOverlay extends StatelessWidget {
 }
 
 class _MobileScannerClipper extends CustomClipper<Path> {
-  const _MobileScannerClipper();
+  const _MobileScannerClipper({required this.scanWindow});
+
+  final Rect scanWindow;
 
   @override
   Path getClip(Size size) {
     final double width = size.width;
     final double height = size.height;
-    final double scanWindowSize = size.shortestSide / 2.1;
 
     final centerRect = Rect.fromCenter(
-      center: Offset(width / 2, height / 2),
-      width: scanWindowSize,
-      height: scanWindowSize,
+      center: size.center(Offset.zero),
+      width: scanWindow.width * 2 / 2.1,
+      height: scanWindow.height * 2 / 2.1,
     );
 
     return Path.combine(

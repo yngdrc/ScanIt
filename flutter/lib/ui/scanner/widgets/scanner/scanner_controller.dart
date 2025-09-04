@@ -54,6 +54,7 @@ class ScannerController extends ValueNotifier<ScannerControllerState> {
   Stream<(RecognizedText, InputImage, CameraLensDirection)>
   get recognizedText => _recognizedTextStreamController.stream;
 
+  // scan window (460, 180, 820, 540)
   Future<void> setScanWindow(Rect? scanWindow) async {
     if (value.scanWindow == scanWindow) return;
     value = value.copyWith(scanWindow: scanWindow);
@@ -122,6 +123,7 @@ class ScannerController extends ValueNotifier<ScannerControllerState> {
       await disposeCamera();
 
       final cameras = await availableCameras();
+      if (cameras.isEmpty) return;
       final cameraDescription = cameras.firstWhere(
         (camera) =>
             camera.lensDirection ==

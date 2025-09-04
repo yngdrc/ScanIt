@@ -7,7 +7,6 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import 'package:nil/nil.dart';
 import 'package:scanit/ui/scanner/widgets/scanner/scanner_controller.dart';
 
-
 class Scanner extends StatefulWidget {
   const Scanner({
     super.key,
@@ -20,8 +19,8 @@ class Scanner extends StatefulWidget {
   });
 
   final ScannerController? controller;
-  final Rect Function(BoxConstraints)? scanWindowInitializer;
-  final Widget Function(
+  final Rect Function(BoxConstraints, Size)? scanWindowInitializer;
+  final Widget? Function(
     BuildContext context,
     BoxConstraints constraints,
     ScannerControllerState scannerState,
@@ -97,10 +96,6 @@ class _ScannerState extends State<Scanner> with WidgetsBindingObserver {
       builder: (_, state, _) {
         return LayoutBuilder(
           builder: (_, constraints) {
-            _controller.setScanWindow(
-              widget.scanWindowInitializer?.call(constraints),
-            );
-
             final cameraController = _controller.value.cameraController;
             if (cameraController == null) {
               return Nil();
@@ -108,6 +103,13 @@ class _ScannerState extends State<Scanner> with WidgetsBindingObserver {
 
             if (!cameraController.value.isInitialized) {
               return const Center(child: CircularProgressIndicator());
+            }
+
+            final previewSize = cameraController.value.previewSize;
+            if (previewSize != null) {
+              _controller.setScanWindow(
+                widget.scanWindowInitializer?.call(constraints, previewSize),
+              );
             }
 
             final Widget? overlay = widget.overlayBuilder?.call(

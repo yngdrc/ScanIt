@@ -1,10 +1,15 @@
 package app.aventurine.scanit
 
+import android.graphics.BitmapFactory
+import android.graphics.ImageFormat
+import android.graphics.Rect
+import android.graphics.YuvImage
 import android.media.Image
 import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.ByteArrayOutputStream
 
 class MainActivity : FlutterActivity() {
     private val CONVERTER_CHANNEL = "app.aventurine.scanit/converter"
@@ -15,11 +20,11 @@ class MainActivity : FlutterActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             CONVERTER_CHANNEL
         ).setMethodCallHandler { call, result ->
-            if (call.method == "yuv420888ToNv21") {
-                val nv21ByteArray = yuv420888ToNv21(
+            if (call.method == "getBitmapData") {
+                val nv21ByteArray = getBitmapData(
                     width = call.argument<Int>("width")!!,
                     height = call.argument<Int>("height")!!,
-                    planes = call.argument<List<ByteArray>>("planes")!!,
+                    nv21 = call.argument<ByteArray>("nv21")!!
                 )
                 result.success(nv21ByteArray)
             } else {
@@ -28,23 +33,14 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun yuv420888ToNv21(
+    private fun getBitmapData(
         width: Int,
         height: Int,
-        planes: List<ByteArray>
+        nv21: ByteArray
     ): ByteArray {
-        val y = planes[0]
-        val u = planes[1]
-        val v = planes[2]
-        val ySize = width * height
-        val uvSize = width * height / 2
-        val nv21 = ByteArray(ySize + uvSize)
-        System.arraycopy(y, 0, nv21, 0, ySize)
-        var pos = ySize
-        for (i in 0 until uvSize step 2) {
-            nv21[pos++] = v[i / 2]
-            nv21[pos++] = u[i / 2]
-        }
-        return nv21
+        val yuvImage = YuvImage(nv21, ImageFormat.NV21, width, height, null)
+        val out = ByteArrayOutputStream()
+        yuvImage.compressToJpeg(Rect(0, 0, width, height), 100, out)
+        return out.toByteArray()
     }
 }

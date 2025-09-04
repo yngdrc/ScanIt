@@ -1,8 +1,13 @@
+import 'dart:ffi';
+import 'dart:ui' as ui;
+import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:nil/nil.dart';
+import 'package:scanit/plugins/converter_plugin.dart';
 import 'package:scanit/ui/scanner/widgets/scanner/scanner.dart';
 import 'package:scanit/ui/scanner/widgets/scanner/scanner_controller.dart';
 
@@ -25,12 +30,15 @@ class _ScannerScreenState extends State<ScannerScreen> {
     List<Barcode> barcodes,
     InputImage inputImage,
     CameraLensDirection lensDirection,
-  ) {
+  ) async {
     final barcode = barcodes.firstOrNull;
     final size = inputImage.metadata?.size;
     final rotation = inputImage.metadata?.rotation;
 
-    if (barcode == null || size == null || rotation == null) {
+    if (barcode == null ||
+        size == null ||
+        rotation == null ||
+        inputImage.bytes == null) {
       setState(() {
         _customPaint = null;
       });
@@ -78,10 +86,22 @@ class _ScannerScreenState extends State<ScannerScreen> {
     });
   }
 
-  Rect _getScanWindow(BoxConstraints constraints) {
-    final scanWindowSize = constraints.biggest.shortestSide / 2;
+  // preview size 1280x720
+  // box constraints 485.4x1078.7
+  Rect _getScanWindow(BoxConstraints constraints, ui.Size previewSize) {
+    ui.Size size;
+    // if (constraints.biggest.shortestSide < previewSize.shortestSide) {
+    //   size = constraints.biggest;
+    // } else {
+    size = previewSize;
+    // }
+
+    // final scanWindowSize = constraints.biggest.shortestSide / 2;
+    // final center = constraints.biggest.center(Offset.zero);
+    final scanWindowSize = size.shortestSide / 2;
     return Rect.fromCenter(
-      center: constraints.biggest.center(Offset.zero),
+      // center: Offset(center.dy, center.dx),
+      center: size.center(Offset.zero),
       width: scanWindowSize,
       height: scanWindowSize,
     );
@@ -91,12 +111,18 @@ class _ScannerScreenState extends State<ScannerScreen> {
   Widget build(BuildContext context) {
     return Scanner(
       controller: _scannerController,
-      // scanWindowInitializer: (constraints) {
-      //   return _getScanWindow(constraints);
-      // },
+      scanWindowInitializer: (constraints, previewSize) {
+        return _getScanWindow(constraints, previewSize);
+      },
       overlayBuilder: (context, constraints, state) {
+        // final bytes = _inputImageBytes;
+        // if (bytes == null) return Container();
+        // return Image.memory(bytes);
+
+        final scanWindow = state.scanWindow;
+        if (scanWindow == null) return null;
         return MobileScannerOverlay(
-          constraints: constraints,
+          scanWindow: scanWindow,
           barcode: null,
           detectionMode: state.detectionMode,
           onModeSelected: (mode) async {

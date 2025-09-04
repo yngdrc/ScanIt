@@ -1,9 +1,11 @@
+import 'dart:ui';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:scanit/ui/scanner/processing/camera_image_extension.dart';
+import 'package:flutter/widgets.dart';
 
 class CameraProcessor {
   final BarcodeScanner _barcodeScanner = BarcodeScanner();
@@ -29,10 +31,10 @@ class CameraProcessor {
     final lensDirection = cameraDescription.lensDirection;
 
     final inputImage = await image.inputImageFromBytes(
-        cropRect,
-        sensorOrientation,
-        lensDirection,
-        deviceOrientation
+      cropRect,
+      sensorOrientation,
+      lensDirection,
+      deviceOrientation,
     );
 
     if (inputImage == null) {
@@ -61,10 +63,10 @@ class CameraProcessor {
     final lensDirection = cameraDescription.lensDirection;
 
     final inputImage = await image.inputImageFromBytes(
-        cropRect,
-        sensorOrientation,
-        lensDirection,
-        deviceOrientation
+      cropRect,
+      sensorOrientation,
+      lensDirection,
+      deviceOrientation,
     );
 
     if (inputImage == null) {
@@ -73,8 +75,8 @@ class CameraProcessor {
     }
 
     final recognizedText = await _textRecognizer.processImage(inputImage);
-
     _isBusy = false;
+
     return (recognizedText, inputImage);
   }
 

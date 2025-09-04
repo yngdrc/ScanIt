@@ -7,25 +7,26 @@ import 'package:scanit/utils/barcode_utils.dart';
 class ScanRectangleWidget extends StatelessWidget {
   const ScanRectangleWidget({
     super.key,
-    required this.constraints,
+    required this.scanWindow,
     required this.barcode,
   });
 
-  final BoxConstraints constraints;
+  final Rect scanWindow;
   final Barcode? barcode;
-
-  double get size => constraints.biggest.shortestSide / 2;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(constraints.biggest.shortestSide / 84),
-      width: size,
-      height: size,
+      padding: EdgeInsets.symmetric(
+        horizontal: scanWindow.width / 42,
+        vertical: scanWindow.height / 42,
+      ),
+      width: scanWindow.width,
+      height: scanWindow.height,
       decoration: BoxDecoration(
         border: DashedBorder.all(
           color: Colors.white,
-          dashLength: size / 4,
+          dashLength: scanWindow.shortestSide / 4,
           width: 3,
           isOnlyCorner: true,
           strokeAlign: BorderSide.strokeAlignOutside,
