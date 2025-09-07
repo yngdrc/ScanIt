@@ -4,7 +4,6 @@ import 'package:camera/camera.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 
-
 extension CameraImageExtension on CameraImage {
   Future<InputImage?> inputImageFromBytes(
     Rect? cropRect,
@@ -55,9 +54,8 @@ extension CameraImageExtension on CameraImage {
       case InputImageFormat.yuv_420_888:
         return _yuv420888(cropRect, rotation);
       case InputImageFormat.nv21:
-        return _nv21(rotation);
       case InputImageFormat.bgra8888:
-        return _bgra8888(rotation);
+        return _nv21_bgra8888(rotation, format);
     }
   }
 
@@ -118,9 +116,10 @@ extension CameraImageExtension on CameraImage {
     );
   }
 
-  Future<InputImage?> _nv21(InputImageRotation rotation) async {
-    if (!Platform.isAndroid) return null;
-
+  Future<InputImage?> _nv21_bgra8888(
+    InputImageRotation rotation,
+    InputImageFormat format,
+  ) async {
     // since format is constraint to nv21, it only has one plane
     if (planes.length != 1) return null;
     final plane = planes.first;
@@ -130,25 +129,7 @@ extension CameraImageExtension on CameraImage {
       metadata: InputImageMetadata(
         size: Size(width.toDouble(), height.toDouble()),
         rotation: rotation,
-        format: InputImageFormat.nv21,
-        bytesPerRow: plane.bytesPerRow,
-      ),
-    );
-  }
-
-  Future<InputImage?> _bgra8888(InputImageRotation rotation) async {
-    if (!Platform.isIOS) return null;
-
-    // since format is constraint to nv21, it only has one plane
-    if (planes.length != 1) return null;
-    final plane = planes.first;
-
-    return InputImage.fromBytes(
-      bytes: plane.bytes,
-      metadata: InputImageMetadata(
-        size: Size(width.toDouble(), height.toDouble()),
-        rotation: rotation,
-        format: InputImageFormat.bgra8888,
+        format: format,
         bytesPerRow: plane.bytesPerRow,
       ),
     );

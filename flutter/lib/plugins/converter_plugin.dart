@@ -6,12 +6,14 @@ abstract class ConverterPlugin {
     'app.aventurine.scanit/converter',
   );
 
-  static Future<Uint8List?> yuv420888ToNv21(CameraImage data) async {
-    return await _converterChannel
-        .invokeMethod<Uint8List>('yuv420888ToNv21', <String, dynamic>{
-      'width': data.width,
-      'height': data.height,
-      'planes': data.planes.map((e) => e.bytes).toList(),
-    });
+  static Future<Uint8List?> getBitmapData(
+    int width,
+    int height,
+    Uint8List nv21,
+  ) async {
+    return await _converterChannel.invokeMethod<Uint8List>(
+      'getBitmapData',
+      <String, dynamic>{'width': width, 'height': height, 'nv21': nv21},
+    );
   }
 }

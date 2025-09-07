@@ -9,17 +9,19 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import 'coordinates_translator.dart';
 
 class TextRecognizerPainter extends CustomPainter {
-  TextRecognizerPainter(
-      this.recognizedText,
-      this.imageSize,
-      this.rotation,
-      this.cameraLensDirection,
-      );
+  TextRecognizerPainter({
+    required this.imageSize,
+    required this.rotation,
+    required this.recognizedText,
+    required this.cameraLensDirection,
+    required this.scanWindow,
+  });
 
-  final RecognizedText recognizedText;
   final Size imageSize;
   final InputImageRotation rotation;
+  final RecognizedText recognizedText;
   final CameraLensDirection cameraLensDirection;
+  final Rect? scanWindow;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -33,12 +35,14 @@ class TextRecognizerPainter extends CustomPainter {
     for (final textBlock in recognizedText.blocks) {
       final ParagraphBuilder builder = ParagraphBuilder(
         ParagraphStyle(
-            textAlign: TextAlign.left,
-            fontSize: 16,
-            textDirection: TextDirection.ltr),
+          textAlign: TextAlign.left,
+          fontSize: 16,
+          textDirection: TextDirection.ltr,
+        ),
       );
       builder.pushStyle(
-          ui.TextStyle(color: Colors.lightGreenAccent, background: background));
+        ui.TextStyle(color: Colors.lightGreenAccent, background: background),
+      );
       builder.addText(textBlock.text);
       builder.pop();
 
@@ -48,6 +52,7 @@ class TextRecognizerPainter extends CustomPainter {
         imageSize,
         rotation,
         cameraLensDirection,
+        scanWindow,
       );
       final top = translateY(
         textBlock.boundingBox.top,
@@ -55,6 +60,7 @@ class TextRecognizerPainter extends CustomPainter {
         imageSize,
         rotation,
         cameraLensDirection,
+        scanWindow,
       );
       final right = translateX(
         textBlock.boundingBox.right,
@@ -62,6 +68,7 @@ class TextRecognizerPainter extends CustomPainter {
         imageSize,
         rotation,
         cameraLensDirection,
+        scanWindow,
       );
 
       final List<Offset> cornerPoints = <Offset>[];
@@ -72,6 +79,7 @@ class TextRecognizerPainter extends CustomPainter {
           imageSize,
           rotation,
           cameraLensDirection,
+          scanWindow,
         );
         double y = translateY(
           point.y.toDouble(),
@@ -79,6 +87,7 @@ class TextRecognizerPainter extends CustomPainter {
           imageSize,
           rotation,
           cameraLensDirection,
+          scanWindow,
         );
 
         if (Platform.isAndroid) {
@@ -99,14 +108,17 @@ class TextRecognizerPainter extends CustomPainter {
                     imageSize,
                     rotation,
                     cameraLensDirection,
+                    scanWindow,
                   );
-                  y = size.height -
+                  y =
+                      size.height -
                       translateY(
                         point.x.toDouble(),
                         size,
                         imageSize,
                         rotation,
                         cameraLensDirection,
+                        scanWindow,
                       );
                   break;
               }
@@ -121,13 +133,15 @@ class TextRecognizerPainter extends CustomPainter {
                   y = size.height - y;
                   break;
                 case InputImageRotation.rotation90deg:
-                  x = size.width -
+                  x =
+                      size.width -
                       translateX(
                         point.y.toDouble(),
                         size,
                         imageSize,
                         rotation,
                         cameraLensDirection,
+                        scanWindow,
                       );
                   y = translateY(
                     point.x.toDouble(),
@@ -135,6 +149,7 @@ class TextRecognizerPainter extends CustomPainter {
                     imageSize,
                     rotation,
                     cameraLensDirection,
+                    scanWindow,
                   );
                   break;
               }
@@ -153,15 +168,13 @@ class TextRecognizerPainter extends CustomPainter {
 
       canvas.drawParagraph(
         builder.build()
-          ..layout(ParagraphConstraints(
-            width: (right - left).abs(),
-          )),
+          ..layout(ParagraphConstraints(width: (right - left).abs())),
         Offset(
-            Platform.isAndroid &&
-                cameraLensDirection == CameraLensDirection.front
-                ? right
-                : left,
-            top),
+          Platform.isAndroid && cameraLensDirection == CameraLensDirection.front
+              ? right
+              : left,
+          top,
+        ),
       );
     }
   }

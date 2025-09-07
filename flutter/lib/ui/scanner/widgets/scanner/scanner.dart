@@ -1,67 +1,71 @@
 import 'dart:async';
 
-import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:nil/nil.dart';
+import 'package:scanit/ui/scanner/processing/camera_processor.dart';
 import 'package:scanit/ui/scanner/widgets/scanner/scanner_controller.dart';
+import 'package:scanit/ui/scanner/widgets/scanner/scanner_preview.dart';
 
+typedef ScanWindowInitializer =
+    Rect Function({
+      required BoxConstraints constraints,
+      required Size previewSize,
+    });
+
+typedef OnBarcodesDetected =
+    void Function({required BarcodesDetectedEvent event});
+
+typedef OnTextDetected = void Function({required TextRecognizedEvent event});
+
+typedef OverlayBuilder =
+    Widget? Function({
+      required BuildContext context,
+      required BoxConstraints constraints,
+      required ScannerControllerState scannerState,
+    });
 
 class Scanner extends StatefulWidget {
-  const Scanner({
+  Scanner({
     super.key,
-    this.controller,
+    ScannerController? controller,
     this.scanWindowInitializer,
     this.overlayBuilder,
     this.child,
-    required this.onBarcodesDetected,
-    required this.onTextDetected,
-  });
+    this.onBarcodesDetected,
+    this.onTextDetected,
+  }) : controller = controller ?? ScannerController();
 
-  final ScannerController? controller;
-  final Rect Function(BoxConstraints)? scanWindowInitializer;
-  final Widget Function(
-    BuildContext context,
-    BoxConstraints constraints,
-    ScannerControllerState scannerState,
-  )?
-  overlayBuilder;
-
+  final ScannerController controller;
+  final ScanWindowInitializer? scanWindowInitializer;
+  final OverlayBuilder? overlayBuilder;
   final Widget? child;
-
-  final void Function(List<Barcode>, InputImage, CameraLensDirection)
-  onBarcodesDetected;
-
-  final void Function(RecognizedText, InputImage, CameraLensDirection)
-  onTextDetected;
+  final OnBarcodesDetected? onBarcodesDetected;
+  final OnTextDetected? onTextDetected;
 
   @override
   State<StatefulWidget> createState() => _ScannerState();
 }
 
 class _ScannerState extends State<Scanner> with WidgetsBindingObserver {
-  late final ScannerController _controller;
   StreamSubscription? _barcodesSubscription;
   StreamSubscription? _recognizedTextSubscription;
 
   @override
   void initState() {
     super.initState();
-    _controller = widget.controller ?? ScannerController();
     WidgetsBinding.instance.addObserver(this);
     _setupListeners();
-    unawaited(_controller.initializeScanner());
+    unawaited(widget.controller.initializeScanner());
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.inactive) {
       _disposeListeners();
-      unawaited(_controller.disposeCamera());
+      unawaited(widget.controller.disposeCamera());
     } else if (state == AppLifecycleState.resumed) {
       _setupListeners();
-      unawaited(_controller.initializeScanner());
+      unawaited(widget.controller.initializeScanner());
     }
   }
 
@@ -69,18 +73,18 @@ class _ScannerState extends State<Scanner> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _disposeListeners();
-    _controller.dispose();
+    widget.controller.dispose();
     super.dispose();
   }
 
   void _setupListeners() {
-    _barcodesSubscription = _controller.barcodes.listen((data) {
-      widget.onBarcodesDetected(data.$1, data.$2, data.$3);
-    });
+    _barcodesSubscription = widget.controller.barcodesStream.listen(
+      (event) => widget.onBarcodesDetected?.call(event: event),
+    );
 
-    _recognizedTextSubscription = _controller.recognizedText.listen((data) {
-      widget.onTextDetected(data.$1, data.$2, data.$3);
-    });
+    _recognizedTextSubscription = widget.controller.ocrStream.listen(
+      (event) => widget.onTextDetected?.call(event: event),
+    );
   }
 
   void _disposeListeners() {
@@ -90,47 +94,44 @@ class _ScannerState extends State<Scanner> with WidgetsBindingObserver {
     _recognizedTextSubscription = null;
   }
 
+  void _onPreviewReady({
+    required BoxConstraints constraints,
+    required Size previewSize,
+  }) {
+    final scanWindow = widget.scanWindowInitializer?.call(
+      constraints: constraints,
+      previewSize: previewSize,
+    );
+
+    widget.controller.setScanWindow(scanWindow: scanWindow);
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
-      valueListenable: _controller,
-      builder: (_, state, _) {
+      valueListenable: widget.controller,
+      builder: (_, scannerState, child) {
+        final cameraController = scannerState.cameraController;
+        if (cameraController == null) {
+          return Nil();
+        }
+
         return LayoutBuilder(
           builder: (_, constraints) {
-            _controller.setScanWindow(
-              widget.scanWindowInitializer?.call(constraints),
-            );
-
-            final cameraController = _controller.value.cameraController;
-            if (cameraController == null) {
-              return Nil();
-            }
-
-            if (!cameraController.value.isInitialized) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
             final Widget? overlay = widget.overlayBuilder?.call(
-              context,
-              constraints,
-              state,
+              context: context,
+              constraints: constraints,
+              scannerState: scannerState,
             );
 
             try {
-              final size = MediaQuery.of(context).size;
-              var scale = size.aspectRatio * cameraController.value.aspectRatio;
-              if (scale < 1) scale = 1 / scale;
-
               return Stack(
                 children: [
-                  Transform.scale(
-                    scale: scale,
-                    child: Center(
-                      child: CameraPreview(
-                        cameraController,
-                        child: widget.child,
-                      ),
-                    ),
+                  ScannerPreview(
+                    controller: cameraController,
+                    constraints: constraints,
+                    onPreviewReady: _onPreviewReady,
+                    child: child,
                   ),
                   ?overlay,
                 ],
@@ -141,6 +142,7 @@ class _ScannerState extends State<Scanner> with WidgetsBindingObserver {
           },
         );
       },
+      child: widget.child,
     );
   }
 }
