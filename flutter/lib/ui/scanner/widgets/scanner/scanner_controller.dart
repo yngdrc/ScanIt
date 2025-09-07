@@ -4,10 +4,8 @@ import 'package:async/async.dart';
 import 'package:camera/camera.dart';
 import 'package:command_it/command_it.dart';
 import 'package:flutter/material.dart';
-import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:scanit/ui/scanner/processing/camera_processor.dart';
-import 'package:scanit/ui/scanner/widgets/mobile_scanner_detection_mode.dart';
+import 'package:scanit/ui/scanner/widgets/scanner/scanner_detection_mode.dart';
 
 class ScannerControllerState {
   const ScannerControllerState({
@@ -19,6 +17,8 @@ class ScannerControllerState {
   final DetectionMode detectionMode;
   final CameraController? cameraController;
   final Rect? scanWindow;
+
+  FlashMode? get flashMode => cameraController?.value.flashMode;
 
   ScannerControllerState copyWith({
     CameraController? cameraController,
@@ -42,20 +42,19 @@ class ScannerController extends ValueNotifier<ScannerControllerState> {
   CancelableOperation<void>? _processingOperation;
   ListenableSubscription? _cameraControllerSubscription;
 
-  final StreamController<(List<Barcode>, InputImage, CameraLensDirection)>
-  _barcodesStreamController = StreamController.broadcast();
+  final StreamController<BarcodesDetectedEvent>
+  _barcodeDetectedEventsController = StreamController.broadcast();
 
-  final StreamController<(RecognizedText, InputImage, CameraLensDirection)>
-  _recognizedTextStreamController = StreamController.broadcast();
+  final StreamController<TextRecognizedEvent> _textRecognizedEventsController =
+      StreamController.broadcast();
 
-  Stream<(List<Barcode>, InputImage, CameraLensDirection)> get barcodes =>
-      _barcodesStreamController.stream;
+  Stream<BarcodesDetectedEvent> get barcodesStream =>
+      _barcodeDetectedEventsController.stream;
 
-  Stream<(RecognizedText, InputImage, CameraLensDirection)>
-  get recognizedText => _recognizedTextStreamController.stream;
+  Stream<TextRecognizedEvent> get ocrStream =>
+      _textRecognizedEventsController.stream;
 
-  // scan window (460, 180, 820, 540)
-  Future<void> setScanWindow(Rect? scanWindow) async {
+  Future<void> setScanWindow({required Rect? scanWindow}) async {
     if (value.scanWindow == scanWindow) return;
     value = value.copyWith(scanWindow: scanWindow);
 
@@ -63,11 +62,11 @@ class ScannerController extends ValueNotifier<ScannerControllerState> {
     if (cameraController == null) {
       await _cancelProcessing();
     } else {
-      await _startScanning(cameraController);
+      await _startScanning(cameraController: cameraController);
     }
   }
 
-  Future<void> setDetectionMode(DetectionMode detectionMode) async {
+  Future<void> setDetectionMode({required DetectionMode detectionMode}) async {
     if (value.detectionMode == detectionMode) return;
     value = value.copyWith(detectionMode: detectionMode);
 
@@ -75,7 +74,7 @@ class ScannerController extends ValueNotifier<ScannerControllerState> {
     if (cameraController == null) {
       await _cancelProcessing();
     } else {
-      await _startScanning(cameraController);
+      await _startScanning(cameraController: cameraController);
     }
   }
 
@@ -139,13 +138,13 @@ class ScannerController extends ValueNotifier<ScannerControllerState> {
         enableAudio: false,
       )..setFlashMode(FlashMode.off);
 
-      _cameraControllerSubscription = cameraController.listen((_, _) {
+      _cameraControllerSubscription = cameraController.listen((cameraValue, _) {
         notifyListeners();
       });
 
       value = value.copyWith(cameraController: cameraController);
       await cameraController.initialize();
-      await _startScanning(cameraController);
+      await _startScanning(cameraController: cameraController);
     } on CameraException catch (e) {
       debugPrint('Error initializing camera: ${e.code} - ${e.description}');
     } on Exception catch (e) {
@@ -153,42 +152,39 @@ class ScannerController extends ValueNotifier<ScannerControllerState> {
     }
   }
 
-  Future<void> _startScanning(CameraController cameraController) async {
+  Future<void> _startScanning({
+    required CameraController cameraController,
+  }) async {
     await _cancelProcessing();
-    return cameraController.startImageStream((image) {
-      _processingOperation = _process(image, cameraController);
+    return cameraController.startImageStream((cameraImage) {
+      _processingOperation = _process(
+        cameraImage: cameraImage,
+        cameraController: cameraController,
+      );
     });
   }
 
-  CancelableOperation<void> _process(
-    CameraImage image,
-    CameraController cameraController,
-  ) {
-    Future<void> future;
-    switch (value.detectionMode) {
-      case DetectionMode.barcode:
-        future = _cameraProcessor
-            .processBarcodes(cameraController, image, value.scanWindow)
-            .then((data) {
-              if (data == null) return;
-              _barcodesStreamController.add((
-                data.$1,
-                data.$2,
-                cameraController.description.lensDirection,
-              ));
-            });
-      case DetectionMode.ocr:
-        future = _cameraProcessor
-            .processOCR(cameraController, image, value.scanWindow)
-            .then((data) {
-              if (data == null) return;
-              _recognizedTextStreamController.add((
-                data.$1,
-                data.$2,
-                cameraController.description.lensDirection,
-              ));
-            });
-    }
+  CancelableOperation<void> _process({
+    required CameraImage cameraImage,
+    required CameraController cameraController,
+  }) {
+    final future = _cameraProcessor
+        .processImage(
+          cameraController: cameraController,
+          cameraImage: cameraImage,
+          detectionMode: value.detectionMode,
+          scanWindow: value.scanWindow,
+        )
+        .then((event) {
+          switch (event) {
+            case BarcodesDetectedEvent _:
+              return _barcodeDetectedEventsController.add(event);
+            case TextRecognizedEvent _:
+              return _textRecognizedEventsController.add(event);
+            default:
+              return;
+          }
+        });
 
     return CancelableOperation.fromFuture(future);
   }
@@ -207,6 +203,8 @@ class ScannerController extends ValueNotifier<ScannerControllerState> {
 
   Future<void> disposeCamera() async {
     _cameraControllerSubscription?.cancel();
+    _cameraControllerSubscription = null;
+
     await _cancelProcessing();
     final currentCameraController = value.cameraController;
     value = ScannerControllerState(
@@ -219,7 +217,8 @@ class ScannerController extends ValueNotifier<ScannerControllerState> {
 
   @override
   void dispose() {
-    _barcodesStreamController.close();
+    _barcodeDetectedEventsController.close();
+    _textRecognizedEventsController.close();
     unawaited(disposeCamera().then((_) => _cameraProcessor.dispose()));
     super.dispose();
   }

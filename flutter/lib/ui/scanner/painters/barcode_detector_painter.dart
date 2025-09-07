@@ -9,17 +9,19 @@ import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart
 import 'coordinates_translator.dart';
 
 class BarcodeDetectorPainter extends CustomPainter {
-  BarcodeDetectorPainter(
-    this.barcodes,
-    this.imageSize,
-    this.rotation,
-    this.cameraLensDirection,
-  );
+  BarcodeDetectorPainter({
+    required this.imageSize,
+    required this.rotation,
+    required this.barcodes,
+    required this.cameraLensDirection,
+    required this.scanWindow,
+  });
 
-  final List<Barcode> barcodes;
   final Size imageSize;
   final InputImageRotation rotation;
+  final List<Barcode> barcodes;
   final CameraLensDirection cameraLensDirection;
+  final Rect? scanWindow;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -50,6 +52,7 @@ class BarcodeDetectorPainter extends CustomPainter {
         imageSize,
         rotation,
         cameraLensDirection,
+        scanWindow,
       );
       final top = translateY(
         barcode.boundingBox.top,
@@ -57,6 +60,7 @@ class BarcodeDetectorPainter extends CustomPainter {
         imageSize,
         rotation,
         cameraLensDirection,
+        scanWindow,
       );
       final right = translateX(
         barcode.boundingBox.right,
@@ -64,6 +68,7 @@ class BarcodeDetectorPainter extends CustomPainter {
         imageSize,
         rotation,
         cameraLensDirection,
+        scanWindow,
       );
 
       final List<Offset> cornerPoints = <Offset>[];
@@ -74,6 +79,7 @@ class BarcodeDetectorPainter extends CustomPainter {
           imageSize,
           rotation,
           cameraLensDirection,
+          scanWindow,
         );
         final double y = translateY(
           point.y.toDouble(),
@@ -81,6 +87,7 @@ class BarcodeDetectorPainter extends CustomPainter {
           imageSize,
           rotation,
           cameraLensDirection,
+          scanWindow,
         );
 
         cornerPoints.add(Offset(x, y));
