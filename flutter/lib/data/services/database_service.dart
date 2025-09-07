@@ -1,4 +1,5 @@
 import 'package:path/path.dart';
+import 'package:scanit/domain/models/barcode/barcode_local_model.dart';
 import 'package:sqflite/sqflite.dart';
 
 abstract class DatabaseService {
@@ -23,8 +24,6 @@ class DatabaseServiceImpl implements DatabaseService {
   }
 
   Future<void> _onCreate(Database db, int version) async {
-    await db.execute(
-      'CREATE TABLE history(uuid TEXT PRIMARY KEY, barcodeData TEXT, scannedAtMillis INTEGER)',
-    );
+    await db.execute(BarcodeLocalModel.createTableSql());
   }
 }

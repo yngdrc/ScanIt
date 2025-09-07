@@ -1,23 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
-import 'package:scanit/data/repositories/history/history_repository_local.dart';
-import 'package:scanit/ui/core/themes/theme.dart';
-import 'package:scanit/ui/main/widgets/main_screen.dart';
-import 'package:scanit/utils/util.dart';
+import 'package:provider/provider.dart';
+import 'package:scanit/data/repositories/barcode/barcode_repository_local.dart';
+import 'package:scanit/ui/colors.dart';
+import 'package:scanit/ui/scan_history/viewmodels/scan_history_view_model.dart';
+import 'package:scanit/ui/scan_history/widgets/scan_history_screen.dart';
+import 'package:scanit/ui/scanner/widgets/scanner_screen.dart';
+import 'package:scanit/utils/theme_utils.dart';
 
 import 'data/services/database_service.dart';
 
-void setupGetIt() {
-  final databaseService = DatabaseServiceImpl();
-  GetIt.instance.registerSingleton<DatabaseService>(databaseService);
-  GetIt.instance.registerSingleton<HistoryRepositoryLocal>(
-    HistoryRepositoryLocal(databaseService: databaseService),
-  );
-}
-
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  setupGetIt();
   runApp(const ScanItApp());
 }
 
@@ -32,16 +25,37 @@ class ScanItApp extends StatelessWidget {
       "Roboto Flex",
     );
 
-    MaterialTheme theme = MaterialTheme(textTheme);
-
-    return MaterialApp(
-      title: 'ScanIt',
-      theme: theme.light(),
-      darkTheme: theme.dark(),
-      highContrastTheme: theme.lightHighContrast(),
-      highContrastDarkTheme: theme.darkHighContrast(),
-      themeMode: ThemeMode.system,
-      home: const MainScreen(),
+    return MultiProvider(
+      providers: [
+        Provider<DatabaseService>.value(value: DatabaseServiceImpl()),
+        Provider<BarcodeRepositoryLocal>(
+          create: (context) {
+            return BarcodeRepositoryLocal(databaseService: context.read());
+          },
+        ),
+        ChangeNotifierProvider(
+          create: (context) {
+            return ScanHistoryViewModel(barcodeRepository: context.read());
+          },
+        ),
+      ],
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'ScanIt',
+          theme: ThemeData(
+            useMaterial3: true,
+            useSystemColors: true,
+            textTheme: textTheme,
+            scaffoldBackgroundColor: ScanItColors.surface,
+          ),
+          home: ScannerScreen(),
+          routes: <String, WidgetBuilder>{
+            '/scanHistory': (context) {
+              return ScanHistoryScreen(viewModel: context.watch());
+            },
+          },
+        );
+      },
     );
   }
 }
