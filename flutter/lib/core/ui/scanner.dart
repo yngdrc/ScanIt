@@ -2,9 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:nil/nil.dart';
-import 'package:scanit/ui/scanner/processing/camera_processor.dart';
-import 'package:scanit/ui/scanner/widgets/scanner/scanner_controller.dart';
-import 'package:scanit/ui/scanner/widgets/scanner/scanner_preview.dart';
+import 'package:scanit/core/scanit_controller.dart';
+import 'package:scanit/core/ui/scanner_preview.dart';
+
+import '../processing/scanit_processor.dart';
 
 typedef ScanWindowInitializer =
     Rect Function({
@@ -21,21 +22,21 @@ typedef OverlayBuilder =
     Widget? Function({
       required BuildContext context,
       required BoxConstraints constraints,
-      required ScannerControllerState scannerState,
+      required ScanItControllerState scannerState,
     });
 
 class Scanner extends StatefulWidget {
   Scanner({
     super.key,
-    ScannerController? controller,
+    ScanItController? controller,
     this.scanWindowInitializer,
     this.overlayBuilder,
     this.child,
     this.onBarcodesDetected,
     this.onTextDetected,
-  }) : controller = controller ?? ScannerController();
+  }) : controller = controller ?? ScanItController();
 
-  final ScannerController controller;
+  final ScanItController controller;
   final ScanWindowInitializer? scanWindowInitializer;
   final OverlayBuilder? overlayBuilder;
   final Widget? child;
@@ -55,17 +56,19 @@ class _ScannerState extends State<Scanner> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _setupListeners();
-    unawaited(widget.controller.initializeScanner());
+    unawaited(widget.controller.initialize());
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!widget.controller.value.isCameraControllerInitialized) return;
+
     if (state == AppLifecycleState.inactive) {
       _disposeListeners();
       unawaited(widget.controller.disposeCamera());
     } else if (state == AppLifecycleState.resumed) {
       _setupListeners();
-      unawaited(widget.controller.initializeScanner());
+      unawaited(widget.controller.initialize());
     }
   }
 
@@ -124,21 +127,17 @@ class _ScannerState extends State<Scanner> with WidgetsBindingObserver {
               scannerState: scannerState,
             );
 
-            try {
-              return Stack(
-                children: [
-                  ScannerPreview(
-                    controller: cameraController,
-                    constraints: constraints,
-                    onPreviewReady: _onPreviewReady,
-                    child: child,
-                  ),
-                  ?overlay,
-                ],
-              );
-            } catch (e) {
-              return Center(child: Text('Error displaying camera preview: $e'));
-            }
+            return Stack(
+              children: [
+                ScannerPreview(
+                  cameraController: cameraController,
+                  constraints: constraints,
+                  onPreviewReady: _onPreviewReady,
+                  child: child,
+                ),
+                ?overlay,
+              ],
+            );
           },
         );
       },

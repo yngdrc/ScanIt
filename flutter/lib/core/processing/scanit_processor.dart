@@ -1,52 +1,51 @@
-import 'dart:ui';
 
 import 'package:camera/camera.dart';
-import 'package:flutter/services.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-import 'package:scanit/ui/scanner/processing/camera_image_extension.dart';
 import 'package:flutter/widgets.dart';
-import 'package:scanit/ui/scanner/widgets/scanner/scanner_detection_mode.dart';
+import 'package:scanit/core/processing/camera_image_extension.dart';
 
-sealed class CameraProcessorEvent {
-  const CameraProcessorEvent({
+import '../scanner_detection_mode.dart';
+
+sealed class ScanItProcessorEvent {
+  const ScanItProcessorEvent({
     required this.inputImage,
     required this.lensDirection,
-    required this.cameraImageSize,
+    required this.imageSize,
     required this.scanWindow,
   });
 
   final InputImage inputImage;
   final CameraLensDirection lensDirection;
-  final Size cameraImageSize;
+  final Size imageSize;
   final Rect? scanWindow;
 }
 
-class BarcodesDetectedEvent extends CameraProcessorEvent {
+class BarcodesDetectedEvent extends ScanItProcessorEvent {
   BarcodesDetectedEvent({
     required this.barcodes,
     required super.inputImage,
     required super.lensDirection,
-    required super.cameraImageSize,
+    required super.imageSize,
     required super.scanWindow,
   });
 
   final List<Barcode> barcodes;
 }
 
-class TextRecognizedEvent extends CameraProcessorEvent {
+class TextRecognizedEvent extends ScanItProcessorEvent {
   TextRecognizedEvent({
     required this.recognizedText,
     required super.inputImage,
     required super.lensDirection,
-    required super.cameraImageSize,
+    required super.imageSize,
     required super.scanWindow,
   });
 
   final RecognizedText recognizedText;
 }
 
-class CameraProcessor {
+class ScanItProcessor {
   final BarcodeScanner _barcodeScanner = BarcodeScanner();
   final TextRecognizer _textRecognizer = TextRecognizer(
     script: TextRecognitionScript.latin,
@@ -55,7 +54,7 @@ class CameraProcessor {
   bool _canProcess = true;
   bool _isBusy = false;
 
-  Future<CameraProcessorEvent?> processImage({
+  Future<ScanItProcessorEvent?> processCameraImage({
     required CameraController cameraController,
     required CameraImage cameraImage,
     required DetectionMode detectionMode,
@@ -82,35 +81,83 @@ class CameraProcessor {
       return null;
     }
 
-    final cameraImageSize = Size(
+    final imageSize = Size(
       cameraImage.width.toDouble(),
       cameraImage.height.toDouble(),
     );
 
-    CameraProcessorEvent event;
+    final event = await _process(
+      inputImage: inputImage,
+        lensDirection: lensDirection,
+        detectionMode: detectionMode,
+        imageSize: imageSize,
+        scanWindow: scanWindow,
+    );
+
+    _isBusy = false;
+    return event;
+  }
+
+
+  // TODO: scanWindow support
+  Future<ScanItProcessorEvent?> processXFile({
+    required XFile xFile,
+    required DetectionMode detectionMode,
+    required Rect? scanWindow
+  }) async {
+    if (!_canProcess) return null;
+    if (_isBusy) return null;
+    _isBusy = true;
+
+    final image = await decodeImageFromList(
+      await xFile.readAsBytes(),
+    );
+
+    final imageSize = Size(
+      image.width.toDouble(),
+      image.height.toDouble(),
+    );
+
+    final inputImage = InputImage.fromFilePath(xFile.path);
+    final event = await _process(
+      inputImage: inputImage,
+      lensDirection: CameraLensDirection.back,
+      detectionMode: detectionMode,
+      imageSize: imageSize,
+      scanWindow: scanWindow,
+    );
+
+    _isBusy = false;
+    return event;
+  }
+
+  Future<ScanItProcessorEvent> _process({
+    required InputImage inputImage,
+    required CameraLensDirection lensDirection,
+    required DetectionMode detectionMode,
+    required Size imageSize,
+    required Rect? scanWindow,
+  }) async {
     switch (detectionMode) {
       case DetectionMode.barcode:
         final barcodes = await _barcodeScanner.processImage(inputImage);
-        event = BarcodesDetectedEvent(
+        return BarcodesDetectedEvent(
           barcodes: barcodes,
           inputImage: inputImage,
           lensDirection: lensDirection,
-          cameraImageSize: cameraImageSize,
+          imageSize: imageSize,
           scanWindow: scanWindow,
         );
       case DetectionMode.ocr:
         final recognizedText = await _textRecognizer.processImage(inputImage);
-        event = TextRecognizedEvent(
+        return TextRecognizedEvent(
           recognizedText: recognizedText,
           inputImage: inputImage,
           lensDirection: lensDirection,
-          cameraImageSize: cameraImageSize,
-          scanWindow: scanWindow
+          imageSize: imageSize,
+          scanWindow: scanWindow,
         );
     }
-
-    _isBusy = false;
-    return event;
   }
 
   void dispose() {

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:scanit/data/repositories/barcode/barcode_repository_local.dart';
+import 'package:scanit/ui/camera_scanner/camera_scanner_screen.dart';
 import 'package:scanit/ui/colors.dart';
+import 'package:scanit/ui/image_scanner/image_scanner_screen.dart';
 import 'package:scanit/ui/scan_history/viewmodels/scan_history_view_model.dart';
-import 'package:scanit/ui/scan_history/widgets/scan_history_screen.dart';
-import 'package:scanit/ui/scanner/widgets/scanner_screen.dart';
 import 'package:scanit/utils/theme_utils.dart';
 
 import 'data/services/database_service.dart';
@@ -48,11 +48,10 @@ class ScanItApp extends StatelessWidget {
             textTheme: textTheme,
             scaffoldBackgroundColor: ScanItColors.surface,
           ),
-          home: ScannerScreen(),
+          initialRoute: '/camera_scanner',
           routes: <String, WidgetBuilder>{
-            '/scanHistory': (context) {
-              return ScanHistoryScreen(viewModel: context.watch());
-            },
+            '/camera_scanner': (context) => CameraScannerScreen(),
+            '/image_scanner': (context) => ImageScannerScreen(),
           },
         );
       },

@@ -3,105 +3,68 @@ import 'package:flutter/material.dart';
 import 'package:flutter_constraintlayout/flutter_constraintlayout.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:mobkit_dashed_border/mobkit_dashed_border.dart';
-import 'package:scanit/ui/scanner/widgets/scanner_controls.dart';
-import 'package:scanit/ui/scanner/widgets/scanner_detection_mode_picker.dart';
 import 'package:scanit/utils/barcode_utils.dart';
 
-import 'scanner/scanner_detection_mode.dart';
+import '../../core/scanner_detection_mode.dart';
+import 'camera_scanner_controls.dart';
+import 'camera_scanner_detection_mode_picker.dart';
 
-class ScannerOverlay extends StatelessWidget {
-  ScannerOverlay({
+class CameraScannerOverlay extends StatelessWidget {
+  CameraScannerOverlay({
     super.key,
     required Rect? scanWindow,
+    required this.constraints,
     required this.barcode,
     required this.detectionMode,
     required this.isFlashlightOn,
     required this.onDetectionModeSelected,
     required this.onFlashlightToggle,
     required this.onCameraSwitch,
+    required this.onFilePicked,
   }) : _scanWindow = scanWindow;
 
   final Rect? _scanWindow;
+  final BoxConstraints constraints;
   final Barcode? barcode;
   final DetectionMode detectionMode;
   final bool isFlashlightOn;
-  final Function({required DetectionMode detectionMode})
-  onDetectionModeSelected;
+  final OnDetectionModeSelected onDetectionModeSelected;
   final VoidCallback onFlashlightToggle;
   final VoidCallback onCameraSwitch;
+  final OnFilePicked onFilePicked;
 
   final ConstraintId scannerControlsId = ConstraintId('scannerControlsId');
   final ConstraintId scannerDetectionModePickerId = ConstraintId(
     'scannerDetectionModePickerId',
   );
 
+  final ConstraintId scannerFilePickerId = ConstraintId('scannerFilePickerId');
   final ConstraintId scanRectangleId = ConstraintId('scanRectangleId');
 
   @override
   Widget build(BuildContext context) {
     return Stack(
+      fit: StackFit.expand,
       children: [
         if (_scanWindow != null)
           ClipPath(
-            clipper: _MobileScannerClipper(scanWindow: _scanWindow),
+            clipper: _ScannerClipper(scanWindow: _scanWindow),
             child: Container(color: Colors.black.withValues(alpha: 0.5)),
           ),
 
-        ConstraintLayout(
-          childConstraints: [
-            Constraint(
-              id: scannerControlsId,
-              left: parent.left,
-              top: parent.top,
-              right: parent.right,
-              bottom: scanRectangleId.top,
-              verticalBias: 0,
-            ),
-            Constraint(
-              id: scannerDetectionModePickerId,
-              left: scanRectangleId.right,
-              top: scanRectangleId.top,
-              right: parent.right,
-              bottom: scanRectangleId.bottom,
-            ),
-            Constraint(
-              id: scanRectangleId,
-              left: parent.left,
-              top: parent.top,
-              right: parent.right,
-              bottom: parent.bottom,
-            ),
-          ],
-          children: [
-            SafeArea(
-              left: false,
-              right: false,
-              bottom: false,
-              child: ScannerControls(
-                isFlashlightOn: isFlashlightOn,
-                onFlashlightToggle: onFlashlightToggle,
-                onCameraSwitch: onCameraSwitch,
-              ),
-            ).applyConstraintId(id: scannerControlsId),
-            ScannerDetectionModePicker(
-              currentMode: detectionMode,
-              onDetectionModeSelected: onDetectionModeSelected,
-            ).applyConstraintId(id: scannerDetectionModePickerId),
-
-            if (_scanWindow != null)
-              _ScanRectangleWidget(
-                scanWindow: _scanWindow,
-                barcode: barcode,
-              ).applyConstraintId(id: scanRectangleId),
-          ],
-        ),
+        if (_scanWindow != null)
+          _ScanRectangleWidget(
+            scanWindow: _scanWindow,
+            constraints: constraints,
+            barcode: barcode,
+          ),
       ],
     );
   }
 }
 
-class _MobileScannerClipper extends CustomClipper<Path> {
-  const _MobileScannerClipper({required this.scanWindow});
+class _ScannerClipper extends CustomClipper<Path> {
+  const _ScannerClipper({required this.scanWindow});
 
   final Rect scanWindow;
 
@@ -134,32 +97,40 @@ class _MobileScannerClipper extends CustomClipper<Path> {
 class _ScanRectangleWidget extends StatelessWidget {
   const _ScanRectangleWidget({
     required this.scanWindow,
+    required this.constraints,
     required this.barcode,
   });
 
   final Rect scanWindow;
+  final BoxConstraints constraints;
   final Barcode? barcode;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: scanWindow.width / 42,
-        vertical: scanWindow.height / 42,
-      ),
+    return Positioned(
+      left: (constraints.maxWidth - scanWindow.width) / 2,
+      top: (constraints.maxHeight - scanWindow.height) / 2,
       width: scanWindow.width,
       height: scanWindow.height,
-      decoration: BoxDecoration(
-        border: DashedBorder.all(
-          color: Colors.white,
-          dashLength: scanWindow.shortestSide / 4,
-          width: 3,
-          isOnlyCorner: true,
-          strokeAlign: BorderSide.strokeAlignOutside,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: scanWindow.width / 42,
+          vertical: scanWindow.height / 42,
         ),
-        borderRadius: BorderRadius.circular(5),
+        width: scanWindow.width,
+        height: scanWindow.height,
+        decoration: BoxDecoration(
+          border: DashedBorder.all(
+            color: Colors.white,
+            dashLength: scanWindow.shortestSide / 4,
+            width: 3,
+            isOnlyCorner: true,
+            strokeAlign: BorderSide.strokeAlignOutside,
+          ),
+          borderRadius: BorderRadius.circular(5),
+        ),
+        child: _createBarcodeWidget(context, barcode),
       ),
-      child: _createBarcodeWidget(context, barcode),
     );
   }
 

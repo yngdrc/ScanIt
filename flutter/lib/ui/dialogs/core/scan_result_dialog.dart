@@ -4,17 +4,17 @@ import 'package:barcode_widget/barcode_widget.dart' as barcode_widget;
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
-import 'package:scanit/ui/scanner/widgets/dialogs/contact_info_dialog.dart';
-import 'package:scanit/ui/scanner/widgets/dialogs/email_dialog.dart';
-import 'package:scanit/ui/scanner/widgets/dialogs/geo_dialog.dart';
-import 'package:scanit/ui/scanner/widgets/dialogs/phone_dialog.dart';
-import 'package:scanit/ui/scanner/widgets/dialogs/wifi_dialog.dart';
 import 'package:scanit/utils/barcode_utils.dart';
 
 import '../calendar_event_dialog.dart';
+import '../contact_info_dialog.dart';
 import '../driver_license_dialog.dart';
+import '../email_dialog.dart';
+import '../geo_dialog.dart';
+import '../phone_dialog.dart';
 import '../sms_dialog.dart';
 import '../url_dialog.dart';
+import '../wifi_dialog.dart';
 
 class ScanResultDialog extends StatelessWidget {
   const ScanResultDialog._({required this.barcode});

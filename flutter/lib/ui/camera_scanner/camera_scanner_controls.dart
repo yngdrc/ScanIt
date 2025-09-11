@@ -1,19 +1,31 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:file_picker/file_picker.dart';
 
-class ScannerControls extends StatelessWidget {
-  const ScannerControls({
+typedef OnFilePicked = Function({required FilePickerResult result});
+
+class CameraScannerControls extends StatelessWidget {
+  const CameraScannerControls({
     super.key,
     required this.isFlashlightOn,
     required this.onFlashlightToggle,
     required this.onCameraSwitch,
+    required this.onFilePicked,
   });
 
   final bool isFlashlightOn;
   final VoidCallback onFlashlightToggle;
   final VoidCallback onCameraSwitch;
+  final OnFilePicked onFilePicked;
+
+  Future<void> _pickFile() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.image);
+    if (result == null) return;
+    onFilePicked(result: result);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +42,11 @@ class ScannerControls extends StatelessWidget {
           icon: Symbols.cameraswitch,
           isSelected: false,
           onPressed: onCameraSwitch,
+        ),
+        _createControlButton(
+          icon: Symbols.file_open,
+          isSelected: false,
+          onPressed: _pickFile,
         ),
       ],
     );

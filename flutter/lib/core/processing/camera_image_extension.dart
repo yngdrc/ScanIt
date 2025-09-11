@@ -59,7 +59,7 @@ extension CameraImageExtension on CameraImage {
     }
   }
 
-  /// Converts a YUV_420_888 CameraImage to an InputImage in NV21 format.
+  ///  Converts a YUV_420_888 CameraImage to an InputImage in NV21 format.
   Future<InputImage?> _yuv420888(
     Rect? cropRect,
     InputImageRotation rotation,

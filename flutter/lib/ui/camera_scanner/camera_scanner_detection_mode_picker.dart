@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
-import 'scanner/scanner_detection_mode.dart';
+import '../../core/scanner_detection_mode.dart';
 
-class ScannerDetectionModePicker extends StatelessWidget {
-  const ScannerDetectionModePicker({
+typedef OnDetectionModeSelected =
+    Function({required DetectionMode detectionMode});
+
+class CameraScannerDetectionModePicker extends StatelessWidget {
+  const CameraScannerDetectionModePicker({
     super.key,
     required this.currentMode,
     required this.onDetectionModeSelected,
   });
 
   final DetectionMode currentMode;
-  final Function({required DetectionMode detectionMode})
-  onDetectionModeSelected;
+  final OnDetectionModeSelected onDetectionModeSelected;
 
   @override
   Widget build(BuildContext context) {

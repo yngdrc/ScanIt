@@ -15,13 +15,13 @@ typedef OnPreviewReady =
 class ScannerPreview extends StatefulWidget {
   const ScannerPreview({
     super.key,
-    required this.controller,
+    required this.cameraController,
     required this.constraints,
     this.onPreviewReady,
     this.child,
   });
 
-  final CameraController controller;
+  final CameraController cameraController;
   final BoxConstraints constraints;
   final OnPreviewReady? onPreviewReady;
   final Widget? child;
@@ -62,7 +62,7 @@ class _ScannerPreviewState extends State<ScannerPreview>
 
   void _setupListeners() {
     if (widget.onPreviewReady != null) {
-      _previewSizeSubscription = widget.controller
+      _previewSizeSubscription = widget.cameraController
           .select((cameraValue) => cameraValue.previewSize)
           .listen((previewSize, _) {
             if (previewSize == null) return;
@@ -82,7 +82,7 @@ class _ScannerPreviewState extends State<ScannerPreview>
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<CameraValue>(
-      valueListenable: widget.controller,
+      valueListenable: widget.cameraController,
       builder: (context, cameraValue, child) {
         if (!cameraValue.isInitialized) {
           return const Center(child: CircularProgressIndicator());
@@ -108,7 +108,7 @@ class _ScannerPreviewState extends State<ScannerPreview>
                 children: <Widget>[
                   _wrapInRotatedBox(
                     cameraValue: cameraValue,
-                    child: widget.controller.buildPreview(),
+                    child: widget.cameraController.buildPreview(),
                   ),
                   ?child,
                 ],
