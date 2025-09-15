@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
-import '../../core/scanner_detection_mode.dart';
+import '../../core/detection_mode.dart';
 
 typedef OnDetectionModeSelected =
     Function({required DetectionMode detectionMode});

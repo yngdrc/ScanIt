@@ -5,12 +5,12 @@ import 'package:flutter/services.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 
 extension CameraImageExtension on CameraImage {
-  Future<InputImage?> inputImageFromBytes(
-    Rect? cropRect,
-    int sensorOrientation,
-    CameraLensDirection lensDirection,
-    DeviceOrientation deviceOrientation,
-  ) async {
+  Future<InputImage?> inputImageFromBytes({
+    required Rect cropRect,
+    required int sensorOrientation,
+    required CameraLensDirection lensDirection,
+    required DeviceOrientation deviceOrientation,
+  }) async {
     final format = InputImageFormatValue.fromRawValue(this.format.raw);
     if (format == null) return null;
 
@@ -61,17 +61,17 @@ extension CameraImageExtension on CameraImage {
 
   ///  Converts a YUV_420_888 CameraImage to an InputImage in NV21 format.
   Future<InputImage?> _yuv420888(
-    Rect? cropRect,
+    Rect cropRect,
     InputImageRotation rotation,
   ) async {
     final yPlane = planes[0];
     final uPlane = planes[1];
     final vPlane = planes[2];
 
-    final startX = cropRect?.left.toInt() ?? 0;
-    final startY = cropRect?.top.toInt() ?? 0;
-    final cropWidth = cropRect?.width.toInt() ?? width;
-    final cropHeight = cropRect?.height.toInt() ?? height;
+    final startX = cropRect.left.toInt();
+    final startY = cropRect.top.toInt();
+    final cropWidth = cropRect.width.toInt();
+    final cropHeight = cropRect.height.toInt();
 
     final croppedY = Uint8List(cropWidth * cropHeight);
     for (int y = 0; y < cropHeight; y++) {

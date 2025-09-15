@@ -14,14 +14,14 @@ class TextRecognizerPainter extends CustomPainter {
     required this.rotation,
     required this.recognizedText,
     required this.cameraLensDirection,
-    required this.scanWindow,
+    required this.scanArea,
   });
 
   final Size imageSize;
   final InputImageRotation rotation;
   final RecognizedText recognizedText;
   final CameraLensDirection cameraLensDirection;
-  final Rect? scanWindow;
+  final Rect? scanArea;
 
   final _edgePaint = Paint()
     ..style = PaintingStyle.stroke
@@ -60,7 +60,7 @@ class TextRecognizerPainter extends CustomPainter {
         imageSize,
         rotation,
         cameraLensDirection,
-        scanWindow,
+        scanArea,
       );
 
       double y = translateY(
@@ -69,7 +69,7 @@ class TextRecognizerPainter extends CustomPainter {
         imageSize,
         rotation,
         cameraLensDirection,
-        scanWindow,
+        scanArea,
       );
 
       if (Platform.isAndroid) {
@@ -90,7 +90,7 @@ class TextRecognizerPainter extends CustomPainter {
                   imageSize,
                   rotation,
                   cameraLensDirection,
-                  scanWindow,
+                  scanArea,
                 );
 
                 y =
@@ -101,7 +101,7 @@ class TextRecognizerPainter extends CustomPainter {
                           imageSize,
                           rotation,
                           cameraLensDirection,
-                          scanWindow,
+                          scanArea,
                         );
                 break;
             }
@@ -124,7 +124,7 @@ class TextRecognizerPainter extends CustomPainter {
                           imageSize,
                           rotation,
                           cameraLensDirection,
-                          scanWindow,
+                          scanArea,
                         );
                 y = translateY(
                   point.x.toDouble(),
@@ -132,7 +132,7 @@ class TextRecognizerPainter extends CustomPainter {
                   imageSize,
                   rotation,
                   cameraLensDirection,
-                  scanWindow,
+                  scanArea,
                 );
                 break;
             }
@@ -165,7 +165,7 @@ class TextRecognizerPainter extends CustomPainter {
       imageSize,
       rotation,
       cameraLensDirection,
-      scanWindow,
+      scanArea,
     );
 
     final top = translateY(
@@ -174,7 +174,7 @@ class TextRecognizerPainter extends CustomPainter {
       imageSize,
       rotation,
       cameraLensDirection,
-      scanWindow,
+      scanArea,
     );
 
     final right = translateX(
@@ -183,7 +183,7 @@ class TextRecognizerPainter extends CustomPainter {
       imageSize,
       rotation,
       cameraLensDirection,
-      scanWindow,
+      scanArea,
     );
 
     final paragraphConstraints = ParagraphConstraints(

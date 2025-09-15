@@ -5,20 +5,22 @@ import 'package:camera/camera.dart';
 import 'package:command_it/command_it.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:scanit/core/scanner_detection_mode.dart';
+import 'package:scanit/core/detection_mode.dart';
 
 import 'processing/scanit_processor.dart';
 
 class ScanItControllerState {
   const ScanItControllerState({
     required this.detectionMode,
+    this.scanArea,
+    this.bounds,
     this.cameraController,
-    this.scanWindow,
   });
 
   final DetectionMode detectionMode;
+  final Rect? scanArea;
+  final Size? bounds;
   final CameraController? cameraController;
-  final Rect? scanWindow;
 
   FlashMode? get flashMode => cameraController?.value.flashMode;
 
@@ -26,14 +28,16 @@ class ScanItControllerState {
       cameraController?.value.isInitialized ?? false;
 
   ScanItControllerState copyWith({
-    CameraController? cameraController,
     DetectionMode? detectionMode,
-    Rect? scanWindow,
+    Rect? scanArea,
+    Size? bounds,
+    CameraController? cameraController,
   }) {
     return ScanItControllerState(
       detectionMode: detectionMode ?? this.detectionMode,
+      scanArea: scanArea ?? this.scanArea,
+      bounds: bounds ?? this.bounds,
       cameraController: cameraController ?? this.cameraController,
-      scanWindow: scanWindow ?? this.scanWindow,
     );
   }
 }
@@ -122,12 +126,17 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
     required CameraImage cameraImage,
     required CameraController cameraController,
   }) async {
+    final scanArea = value.scanArea;
+    final bounds = value.bounds;
+    if (scanArea == null || bounds == null) return;
+
     final future = _scanItProcessor
         .processCameraImage(
           cameraController: cameraController,
           cameraImage: cameraImage,
           detectionMode: value.detectionMode,
-          scanWindow: value.scanWindow,
+          scanArea: scanArea,
+          bounds: bounds,
         )
         .then((event) {
           if (event == null) return;
@@ -137,19 +146,17 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
     _processingOperation = CancelableOperation.fromFuture(future);
   }
 
-  Future<void> processImageFile({
-    required FilePickerResult result,
-    required scanWindow,
-  }) async {
+  Future<void> processImageFile({required FilePickerResult result}) async {
+    final scanArea = value.scanArea;
     final xFile = result.xFiles.firstOrNull;
-    if (xFile == null) return;
+    if (xFile == null || scanArea == null) return;
 
     await _cancelProcessing();
     final future = _scanItProcessor
         .processXFile(
           xFile: xFile,
           detectionMode: value.detectionMode,
-          scanWindow: scanWindow,
+          scanArea: scanArea,
         )
         .then((event) {
           if (event == null) return;
@@ -168,9 +175,9 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
     }
   }
 
-  void setScanWindow({required Rect? scanWindow}) {
-    if (value.scanWindow == scanWindow) return;
-    value = value.copyWith(scanWindow: scanWindow);
+  void setScanArea({required Rect scanArea, required Size bounds}) {
+    if (value.scanArea == scanArea && value.bounds == bounds) return;
+    value = value.copyWith(scanArea: scanArea, bounds: bounds);
   }
 
   void setDetectionMode({required DetectionMode detectionMode}) {

@@ -16,7 +16,7 @@ CustomPainter? painterFromEvent({required ScanItProcessorEvent event}) {
         rotation: rotation,
         barcodes: event.barcodes,
         cameraLensDirection: event.lensDirection,
-        scanWindow: event.scanWindow,
+        scanArea: event.scanArea,
       );
     case TextRecognizedEvent _:
       if (event.recognizedText.text.isEmpty) return null;
@@ -25,7 +25,7 @@ CustomPainter? painterFromEvent({required ScanItProcessorEvent event}) {
         rotation: rotation,
         recognizedText: event.recognizedText,
         cameraLensDirection: event.lensDirection,
-        scanWindow: event.scanWindow,
+        scanArea: event.scanArea,
       );
   }
 }

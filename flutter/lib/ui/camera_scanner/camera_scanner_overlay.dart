@@ -5,14 +5,14 @@ import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart
 import 'package:mobkit_dashed_border/mobkit_dashed_border.dart';
 import 'package:scanit/utils/barcode_utils.dart';
 
-import '../../core/scanner_detection_mode.dart';
+import '../../core/detection_mode.dart';
 import 'camera_scanner_controls.dart';
 import 'camera_scanner_detection_mode_picker.dart';
 
 class CameraScannerOverlay extends StatelessWidget {
   CameraScannerOverlay({
     super.key,
-    required Rect? scanWindow,
+    required Rect? scanArea,
     required this.constraints,
     required this.barcode,
     required this.detectionMode,
@@ -21,9 +21,9 @@ class CameraScannerOverlay extends StatelessWidget {
     required this.onFlashlightToggle,
     required this.onCameraSwitch,
     required this.onFilePicked,
-  }) : _scanWindow = scanWindow;
+  }) : _scanArea = scanArea;
 
-  final Rect? _scanWindow;
+  final Rect? _scanArea;
   final BoxConstraints constraints;
   final Barcode? barcode;
   final DetectionMode detectionMode;
@@ -46,15 +46,15 @@ class CameraScannerOverlay extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        if (_scanWindow != null)
+        if (_scanArea != null)
           ClipPath(
-            clipper: _ScannerClipper(scanWindow: _scanWindow),
+            clipper: _ScannerClipper(scanArea: _scanArea),
             child: Container(color: Colors.black.withValues(alpha: 0.5)),
           ),
 
-        if (_scanWindow != null)
+        if (_scanArea != null)
           _ScanRectangleWidget(
-            scanWindow: _scanWindow,
+            scanArea: _scanArea,
             constraints: constraints,
             barcode: barcode,
           ),
@@ -64,28 +64,20 @@ class CameraScannerOverlay extends StatelessWidget {
 }
 
 class _ScannerClipper extends CustomClipper<Path> {
-  const _ScannerClipper({required this.scanWindow});
+  const _ScannerClipper({required this.scanArea});
 
-  final Rect scanWindow;
+  final Rect scanArea;
 
   @override
   Path getClip(Size size) {
-    final double width = size.width;
-    final double height = size.height;
-
-    final centerRect = Rect.fromCenter(
-      center: size.center(Offset.zero),
-      width: scanWindow.width * 2 / 2.1,
-      height: scanWindow.height * 2 / 2.1,
-    );
-
+    final dimRect = Rect.fromLTWH(0, 0, size.width, size.height);
     return Path.combine(
       PathOperation.difference,
       Path()
-        ..addRect(Rect.fromLTWH(0, 0, width, height))
+        ..addRect(dimRect)
         ..close(),
       Path()
-        ..addRRect(RRect.fromRectAndRadius(centerRect, Radius.circular(2)))
+        ..addRRect(RRect.fromRectAndRadius(scanArea, Radius.circular(2)))
         ..close(),
     );
   }
@@ -96,33 +88,33 @@ class _ScannerClipper extends CustomClipper<Path> {
 
 class _ScanRectangleWidget extends StatelessWidget {
   const _ScanRectangleWidget({
-    required this.scanWindow,
+    required this.scanArea,
     required this.constraints,
     required this.barcode,
   });
 
-  final Rect scanWindow;
+  final Rect scanArea;
   final BoxConstraints constraints;
   final Barcode? barcode;
 
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      left: (constraints.maxWidth - scanWindow.width) / 2,
-      top: (constraints.maxHeight - scanWindow.height) / 2,
-      width: scanWindow.width,
-      height: scanWindow.height,
+      left: scanArea.left,
+      top: scanArea.top,
+      width: scanArea.width,
+      height: scanArea.height,
       child: Container(
         padding: EdgeInsets.symmetric(
-          horizontal: scanWindow.width / 42,
-          vertical: scanWindow.height / 42,
+          horizontal: scanArea.width / 42,
+          vertical: scanArea.height / 42,
         ),
-        width: scanWindow.width,
-        height: scanWindow.height,
+        width: scanArea.width,
+        height: scanArea.height,
         decoration: BoxDecoration(
           border: DashedBorder.all(
             color: Colors.white,
-            dashLength: scanWindow.shortestSide / 4,
+            dashLength: scanArea.shortestSide / 4,
             width: 3,
             isOnlyCorner: true,
             strokeAlign: BorderSide.strokeAlignOutside,

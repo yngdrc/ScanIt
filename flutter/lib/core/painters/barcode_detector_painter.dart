@@ -14,14 +14,14 @@ class BarcodeDetectorPainter extends CustomPainter {
     required this.rotation,
     required this.barcodes,
     required this.cameraLensDirection,
-    required this.scanWindow,
+    required this.scanArea,
   });
 
   final Size imageSize;
   final InputImageRotation rotation;
   final List<Barcode> barcodes;
   final CameraLensDirection cameraLensDirection;
-  final Rect? scanWindow;
+  final Rect? scanArea;
 
   final _edgePaint = Paint()
     ..style = PaintingStyle.stroke
@@ -60,7 +60,7 @@ class BarcodeDetectorPainter extends CustomPainter {
         imageSize,
         rotation,
         cameraLensDirection,
-        scanWindow,
+        scanArea,
       );
 
       final y = translateY(
@@ -69,7 +69,7 @@ class BarcodeDetectorPainter extends CustomPainter {
         imageSize,
         rotation,
         cameraLensDirection,
-        scanWindow,
+        scanArea,
       );
 
       cornerPoints.add(Offset(x, y));
@@ -95,7 +95,7 @@ class BarcodeDetectorPainter extends CustomPainter {
       imageSize,
       rotation,
       cameraLensDirection,
-      scanWindow,
+      scanArea,
     );
 
     final top = translateY(
@@ -104,7 +104,7 @@ class BarcodeDetectorPainter extends CustomPainter {
       imageSize,
       rotation,
       cameraLensDirection,
-      scanWindow,
+      scanArea,
     );
 
     final right = translateX(
@@ -113,7 +113,7 @@ class BarcodeDetectorPainter extends CustomPainter {
       imageSize,
       rotation,
       cameraLensDirection,
-      scanWindow,
+      scanArea,
     );
 
     final paragraphConstraints = ParagraphConstraints(

@@ -1,11 +1,11 @@
 import 'package:camera/camera.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:scanit/core/utils/scanner_utils.dart';
+import 'package:scanit/core/utils/scanit_utils.dart';
 
 import '../../core/processing/scanit_processor.dart';
 import '../../core/scanit_controller.dart';
-import '../../core/ui/scanner.dart';
+import '../../core/ui/scanit_widget.dart';
 import 'camera_scanner_overlay.dart';
 
 class CameraScannerScreen extends StatefulWidget {
@@ -20,15 +20,15 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> {
   CustomPaint? _customPaint;
 
   // TODO: limit rect position to be inside the visible preview area
-  ScanWindowInitializer get _scanWindowInitializer =>
-      ({required BoxConstraints constraints, required Size previewSize}) {
-        final size = constraints.biggest;
-        final scanWindowSize = size.shortestSide / 2;
-        return Rect.fromCenter(
-          center: previewSize.center(Offset.zero),
-          width: scanWindowSize,
-          height: scanWindowSize,
-        );
+  ScanAreaInitializer get _scanAreaInitializer =>
+      ({required Rect bounds}) {
+        final scanAreaSize = bounds.shortestSide / 2;
+        return Rect.fromLTWH(100, 100, scanAreaSize, scanAreaSize);
+        // return Rect.fromCenter(
+        //   center: bounds.center,
+        //   width: scanAreaSize,
+        //   height: scanAreaSize,
+        // );
       };
 
   void _setCustomPaint({required ScanItProcessorEvent event}) {
@@ -48,9 +48,9 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scanner(
+    return ScanItWidget(
       controller: _scanItController,
-      scanWindowInitializer: _scanWindowInitializer,
+      scanAreaInitializer: _scanAreaInitializer,
       overlayBuilder: _buildOverlay,
       onBarcodesDetected: _setCustomPaint,
       onTextDetected: _setCustomPaint,
@@ -64,7 +64,7 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> {
     required ScanItControllerState scannerState,
   }) {
     return CameraScannerOverlay(
-      scanWindow: scannerState.scanWindow,
+      scanArea: scannerState.scanArea,
       constraints: constraints,
       barcode: null,
       detectionMode: scannerState.detectionMode,

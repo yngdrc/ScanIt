@@ -10,26 +10,26 @@ double translateX(
   Size imageSize,
   InputImageRotation rotation,
   CameraLensDirection cameraLensDirection,
-  Rect? scanWindow,
+  Rect? scanArea,
 ) {
   switch (rotation) {
     case InputImageRotation.rotation90deg:
-      return ((scanWindow?.top ?? 0) + x) *
+      return ((scanArea?.top ?? 0) + x) *
           canvasSize.width /
           (Platform.isIOS ? imageSize.width : imageSize.height);
     case InputImageRotation.rotation270deg:
-      return ((scanWindow?.top ?? 0) + canvasSize.width - x) *
+      return ((scanArea?.top ?? 0) + canvasSize.width - x) *
           canvasSize.width /
           (Platform.isIOS ? imageSize.width : imageSize.height);
     case InputImageRotation.rotation0deg:
     case InputImageRotation.rotation180deg:
       switch (cameraLensDirection) {
         case CameraLensDirection.back:
-          return ((scanWindow?.left ?? 0) + x) *
+          return ((scanArea?.left ?? 0) + x) *
               canvasSize.width /
               imageSize.width;
         default:
-          return ((scanWindow?.left ?? 0) + canvasSize.width - x) *
+          return ((scanArea?.left ?? 0) + canvasSize.width - x) *
               canvasSize.width /
               imageSize.width;
       }
@@ -42,17 +42,17 @@ double translateY(
   Size imageSize,
   InputImageRotation rotation,
   CameraLensDirection cameraLensDirection,
-  Rect? scanWindow,
+  Rect? scanArea,
 ) {
   switch (rotation) {
     case InputImageRotation.rotation90deg:
     case InputImageRotation.rotation270deg:
-      return ((scanWindow?.left ?? 0) + y) *
+      return ((scanArea?.left ?? 0) + y) *
           canvasSize.height /
           (Platform.isIOS ? imageSize.height : imageSize.width);
     case InputImageRotation.rotation0deg:
     case InputImageRotation.rotation180deg:
-      return ((scanWindow?.top ?? 0) + y) *
+      return ((scanArea?.top ?? 0) + y) *
           canvasSize.height /
           imageSize.height;
   }

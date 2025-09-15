@@ -12,8 +12,8 @@ typedef OnPreviewReady =
       required Size previewSize,
     });
 
-class ScannerPreview extends StatefulWidget {
-  const ScannerPreview({
+class ScanItCameraPreview extends StatefulWidget {
+  const ScanItCameraPreview({
     super.key,
     required this.cameraController,
     required this.constraints,
@@ -27,10 +27,10 @@ class ScannerPreview extends StatefulWidget {
   final Widget? child;
 
   @override
-  State<StatefulWidget> createState() => _ScannerPreviewState();
+  State<StatefulWidget> createState() => _ScanItCameraPreviewState();
 }
 
-class _ScannerPreviewState extends State<ScannerPreview>
+class _ScanItCameraPreviewState extends State<ScanItCameraPreview>
     with WidgetsBindingObserver {
   ListenableSubscription? _previewSizeSubscription;
 
@@ -125,10 +125,7 @@ class _ScannerPreviewState extends State<ScannerPreview>
     required CameraValue cameraValue,
     required Widget child,
   }) {
-    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
-      return child;
-    }
-
+    if (defaultTargetPlatform != TargetPlatform.android) return child;
     return RotatedBox(
       quarterTurns: _getQuarterTurns(cameraValue: cameraValue),
       child: child,
