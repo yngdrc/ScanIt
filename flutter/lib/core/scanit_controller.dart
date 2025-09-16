@@ -5,42 +5,11 @@ import 'package:camera/camera.dart';
 import 'package:command_it/command_it.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:scanit/core/detection_mode.dart';
+import 'package:scanit/core/scanit_controller_state.dart';
 
 import 'processing/scanit_processor.dart';
-
-class ScanItControllerState {
-  const ScanItControllerState({
-    required this.detectionMode,
-    this.scanArea,
-    this.bounds,
-    this.cameraController,
-  });
-
-  final DetectionMode detectionMode;
-  final Rect? scanArea;
-  final Size? bounds;
-  final CameraController? cameraController;
-
-  FlashMode? get flashMode => cameraController?.value.flashMode;
-
-  bool get isCameraControllerInitialized =>
-      cameraController?.value.isInitialized ?? false;
-
-  ScanItControllerState copyWith({
-    DetectionMode? detectionMode,
-    Rect? scanArea,
-    Size? bounds,
-    CameraController? cameraController,
-  }) {
-    return ScanItControllerState(
-      detectionMode: detectionMode ?? this.detectionMode,
-      scanArea: scanArea ?? this.scanArea,
-      bounds: bounds ?? this.bounds,
-      cameraController: cameraController ?? this.cameraController,
-    );
-  }
-}
 
 class ScanItController extends ValueNotifier<ScanItControllerState> {
   ScanItController({DetectionMode initialDetectionMode = DetectionMode.barcode})
@@ -115,7 +84,7 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
     final imageStreamFuture = cameraController.startImageStream((cameraImage) {
       _processCameraImage(
         cameraImage: cameraImage,
-        cameraController: cameraController,
+        cameraLensDirection: cameraController.description.lensDirection,
       );
     });
 
@@ -124,19 +93,23 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
 
   Future<void> _processCameraImage({
     required CameraImage cameraImage,
-    required CameraController cameraController,
+    required CameraLensDirection cameraLensDirection,
   }) async {
     final scanArea = value.scanArea;
     final bounds = value.bounds;
-    if (scanArea == null || bounds == null) return;
+    final inputImageRotation = value.inputImageRotation;
+    if (scanArea == null || bounds == null || inputImageRotation == null) {
+      return;
+    }
 
     final future = _scanItProcessor
         .processCameraImage(
-          cameraController: cameraController,
           cameraImage: cameraImage,
           detectionMode: value.detectionMode,
           scanArea: scanArea,
           bounds: bounds,
+          inputImageRotation: inputImageRotation,
+          cameraLensDirection: cameraLensDirection,
         )
         .then((event) {
           if (event == null) return;
@@ -175,9 +148,18 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
     }
   }
 
-  void setScanArea({required Rect scanArea, required Size bounds}) {
-    if (value.scanArea == scanArea && value.bounds == bounds) return;
-    value = value.copyWith(scanArea: scanArea, bounds: bounds);
+  void onPreviewReady({
+    required Rect scanArea,
+    required Rect bounds,
+    required Size previewSize,
+    required InputImageRotation inputImageRotation,
+  }) {
+    value = value.copyWith(
+      scanArea: scanArea,
+      bounds: bounds,
+      previewSize: previewSize,
+      inputImageRotation: inputImageRotation,
+    );
   }
 
   void setDetectionMode({required DetectionMode detectionMode}) {

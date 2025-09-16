@@ -1,15 +1,18 @@
+import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:command_it/command_it.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:nil/nil.dart';
 
 typedef OnPreviewReady =
     void Function({
-      required BoxConstraints constraints,
+      required Size widgetSize,
       required Size previewSize,
+      required InputImageRotation inputImageRotation,
     });
 
 class ScanItCameraPreview extends StatefulWidget {
@@ -60,18 +63,71 @@ class _ScanItCameraPreviewState extends State<ScanItCameraPreview>
     super.dispose();
   }
 
+  ValueListenable<Size?> get _previewSizeListenable =>
+      widget.cameraController.select((cameraValue) => cameraValue.previewSize);
+
+  ValueListenable<DeviceOrientation> get _deviceOrientationListenable => widget
+      .cameraController
+      .select((cameraValue) => cameraValue.deviceOrientation);
+
   void _setupListeners() {
-    if (widget.onPreviewReady != null) {
-      _previewSizeSubscription = widget.cameraController
-          .select((cameraValue) => cameraValue.previewSize)
-          .listen((previewSize, _) {
-            if (previewSize == null) return;
-            widget.onPreviewReady?.call(
-              constraints: widget.constraints,
-              previewSize: previewSize,
+    _previewSizeSubscription = _previewSizeListenable
+        .combineLatest(
+          _deviceOrientationListenable,
+          (previewSize, deviceOrientation) => (previewSize, deviceOrientation),
+        )
+        .listen((data, _) {
+          final (previewSize, deviceOrientation) = data;
+          if (previewSize == null) return;
+
+          final cameraDescription = widget.cameraController.description;
+          final sensorOrientation = cameraDescription.sensorOrientation;
+          final lensDirection = cameraDescription.lensDirection;
+
+          /**
+       * get image rotation
+       * it is used in android to convert the InputImage from Dart to Java: https://github.com/flutter-ml/google_ml_kit_flutter/blob/master/packages/google_mlkit_commons/android/src/main/java/com/google_mlkit_commons/InputImageConverter.java
+       * `rotation` is not used in iOS to convert the InputImage from Dart to Obj-C: https://github.com/flutter-ml/google_ml_kit_flutter/blob/master/packages/google_mlkit_commons/ios/Classes/MLKVisionImage%2BFlutterPlugin.m
+       * in both platforms `rotation` and `camera.lensDirection` can be used to compensate `x` and `y` coordinates on a canvas: https://github.com/flutter-ml/google_ml_kit_flutter/blob/master/packages/example/lib/vision_detector_views/painters/coordinates_translator.dart
+       */
+          InputImageRotation? inputImageRotation;
+          if (Platform.isIOS) {
+            inputImageRotation = InputImageRotationValue.fromRawValue(
+              sensorOrientation,
             );
-          });
-    }
+          } else if (Platform.isAndroid) {
+            final orientations = {
+              DeviceOrientation.portraitUp: 0,
+              DeviceOrientation.landscapeLeft: 90,
+              DeviceOrientation.portraitDown: 180,
+              DeviceOrientation.landscapeRight: 270,
+            };
+
+            var rotationCompensation = orientations[deviceOrientation];
+
+            if (rotationCompensation == null) return;
+            if (lensDirection == CameraLensDirection.front) {
+              // front-facing
+              rotationCompensation =
+                  (sensorOrientation + rotationCompensation) % 360;
+            } else {
+              // back-facing
+              rotationCompensation =
+                  (sensorOrientation - rotationCompensation + 360) % 360;
+            }
+            inputImageRotation = InputImageRotationValue.fromRawValue(
+              rotationCompensation,
+            );
+          }
+
+          if (inputImageRotation == null) return;
+
+          widget.onPreviewReady?.call(
+            widgetSize: widget.constraints.biggest,
+            previewSize: previewSize,
+            inputImageRotation: inputImageRotation,
+          );
+        });
   }
 
   void _disposeListeners() {
@@ -105,7 +161,7 @@ class _ScanItCameraPreviewState extends State<ScanItCameraPreview>
               aspectRatio: aspectRatio,
               child: Stack(
                 fit: StackFit.expand,
-                children: <Widget>[
+                children: [
                   _wrapInRotatedBox(
                     cameraValue: cameraValue,
                     child: widget.cameraController.buildPreview(),

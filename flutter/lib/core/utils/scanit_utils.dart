@@ -1,4 +1,7 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:vector_math/vector_math_64.dart';
 
 import '../painters/barcode_detector_painter.dart';
 import '../painters/text_detector_painter.dart';
@@ -27,5 +30,18 @@ CustomPainter? painterFromEvent({required ScanItProcessorEvent event}) {
         cameraLensDirection: event.lensDirection,
         scanArea: event.scanArea,
       );
+  }
+}
+
+extension RectExtension on Rect {
+  Rect rotateBy({required int angle}) {
+    final radians = angle * (pi / 180);
+    final center = this.center;
+    final matrix = Matrix4.identity()
+      ..translateByVector3(Vector3(center.dx, center.dy, 0))
+      ..rotateZ(radians)
+      ..translateByVector3(Vector3(-center.dx, -center.dy, 0));
+
+    return MatrixUtils.transformRect(matrix, this);
   }
 }

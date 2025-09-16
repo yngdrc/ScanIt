@@ -1,9 +1,11 @@
+import 'dart:math';
+
 import 'package:camera/camera.dart';
-import 'package:flutter/services.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:flutter/widgets.dart';
 import 'package:scanit/core/utils/camera_image_extension.dart';
+import 'package:scanit/core/utils/scanit_utils.dart';
 
 import '../detection_mode.dart';
 
@@ -55,69 +57,52 @@ class ScanItProcessor {
   bool _isBusy = false;
 
   Future<ScanItProcessorEvent?> processCameraImage({
-    required CameraController cameraController,
     required CameraImage cameraImage,
     required DetectionMode detectionMode,
     required Rect scanArea,
-    required Size bounds,
+    required Rect bounds,
+    required InputImageRotation inputImageRotation,
+    required CameraLensDirection cameraLensDirection,
   }) async {
     if (!_canProcess) return null;
     if (_isBusy) return null;
     _isBusy = true;
-
-    final cameraDescription = cameraController.description;
-    final deviceOrientation = cameraController.value.deviceOrientation;
-    final sensorOrientation = cameraDescription.sensorOrientation;
-    final lensDirection = cameraDescription.lensDirection;
 
     final imageSize = Size(
       cameraImage.width.toDouble(),
       cameraImage.height.toDouble(),
     );
 
-    if (deviceOrientation == DeviceOrientation.portraitUp ||
-        deviceOrientation == DeviceOrientation.portraitDown) {
-      bounds = bounds.flipped;
-      scanArea = Rect.fromLTWH(
-        scanArea.top,
-        scanArea.left,
-        scanArea.height,
-        scanArea.width,
+    final rotatedBounds = bounds
+        .shift(imageSize.center(Offset.zero) - bounds.center)
+        .rotateBy(angle: inputImageRotation.rawValue);
+
+    final rotatedScanArea = scanArea
+        .shift(rotatedBounds.topLeft)
+        .rotateBy(angle: inputImageRotation.rawValue);
+
+    ScanItProcessorEvent? event;
+    try {
+      final inputImage = await cameraImage.inputImageFromBytes(
+        cropRect: rotatedScanArea,
+        rotation: inputImageRotation,
       );
+
+      if (inputImage == null) {
+        _isBusy = false;
+        return null;
+      }
+
+      event = await _process(
+        inputImage: inputImage,
+        lensDirection: cameraLensDirection,
+        detectionMode: detectionMode,
+        imageSize: imageSize,
+        scanArea: rotatedScanArea,
+      );
+    } catch (e) {
+      // TODO: handle error
     }
-
-    final previewRect = Rect.fromCenter(
-      center: imageSize.center(Offset.zero),
-      width: bounds.width,
-      height: bounds.height,
-    );
-
-    final translatedScanArea = Rect.fromLTWH(
-      scanArea.left + previewRect.left,
-      scanArea.top + previewRect.top,
-      scanArea.width,
-      scanArea.height,
-    );
-
-    final inputImage = await cameraImage.inputImageFromBytes(
-      cropRect: translatedScanArea,
-      sensorOrientation: sensorOrientation,
-      lensDirection: lensDirection,
-      deviceOrientation: deviceOrientation,
-    );
-
-    if (inputImage == null) {
-      _isBusy = false;
-      return null;
-    }
-
-    final event = await _process(
-      inputImage: inputImage,
-      lensDirection: lensDirection,
-      detectionMode: detectionMode,
-      imageSize: imageSize,
-      scanArea: translatedScanArea,
-    );
 
     _isBusy = false;
     return event;

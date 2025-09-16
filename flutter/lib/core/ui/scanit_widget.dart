@@ -1,13 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:nil/nil.dart';
 import 'package:scanit/core/scanit_controller.dart';
 import 'package:scanit/core/ui/scanit_camera_preview.dart';
 
 import '../processing/scanit_processor.dart';
+import '../scanit_controller_state.dart';
 
-typedef ScanAreaInitializer = Rect Function({required Rect bounds});
+typedef ScanAreaInitializer = Rect Function({required Size widgetSize});
 
 typedef OnBarcodesDetected =
     void Function({required BarcodesDetectedEvent event});
@@ -95,15 +97,20 @@ class _ScanItWidgetState extends State<ScanItWidget>
   }
 
   void _onPreviewReady({
-    required BoxConstraints constraints,
+    required Size widgetSize,
     required Size previewSize,
+    required InputImageRotation inputImageRotation,
   }) {
-    final size = constraints.biggest;
-    final bounds = Rect.fromLTWH(0, 0, size.width, size.height);
-    final scanArea = widget.scanAreaInitializer?.call(bounds: bounds);
-    widget.controller.setScanArea(
-      scanArea: scanArea?.intersect(bounds) ?? bounds,
-      bounds: size,
+    final bounds = Rect.fromLTWH(0, 0, widgetSize.width, widgetSize.height);
+    final scanArea = widget.scanAreaInitializer
+        ?.call(widgetSize: widgetSize)
+        .intersect(bounds);
+
+    widget.controller.onPreviewReady(
+      scanArea: scanArea ?? bounds,
+      bounds: bounds,
+      previewSize: previewSize,
+      inputImageRotation: inputImageRotation,
     );
   }
 
@@ -113,9 +120,7 @@ class _ScanItWidgetState extends State<ScanItWidget>
       valueListenable: widget.controller,
       builder: (_, scannerState, child) {
         final cameraController = scannerState.cameraController;
-        if (cameraController == null) {
-          return Nil();
-        }
+        if (cameraController == null) return Nil();
 
         return LayoutBuilder(
           builder: (_, constraints) {

@@ -404,10 +404,10 @@ packages:
     dependency: "direct main"
     description:
       name: material_symbols_icons
-      sha256: "52b8a84922464027c9d69100307f654a8f2356c818401a5415c08243883925d8"
+      sha256: "9e2042673fda5dda0b77e262220b3c34cac5806a3833da85522e41bb27fbf6c0"
       url: "https://pub.dev"
     source: hosted
-    version: "4.2872.2"
+    version: "4.2873.0"
   meta:
     dependency: transitive
     description:
@@ -710,7 +710,7 @@ packages:
     source: hosted
     version: "4.5.1"
   vector_math:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: vector_math
       sha256: d530bd74fea330e6e364cda7a85019c434070188383e1cd8d9777ee586914c5b

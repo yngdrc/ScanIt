@@ -5,6 +5,7 @@ import 'package:scanit/core/utils/scanit_utils.dart';
 
 import '../../core/processing/scanit_processor.dart';
 import '../../core/scanit_controller.dart';
+import '../../core/scanit_controller_state.dart';
 import '../../core/ui/scanit_widget.dart';
 import 'camera_scanner_overlay.dart';
 
@@ -21,14 +22,9 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> {
 
   // TODO: limit rect position to be inside the visible preview area
   ScanAreaInitializer get _scanAreaInitializer =>
-      ({required Rect bounds}) {
-        final scanAreaSize = bounds.shortestSide / 2;
+      ({required Size widgetSize}) {
+        final scanAreaSize = widgetSize.shortestSide / 2;
         return Rect.fromLTWH(100, 100, scanAreaSize, scanAreaSize);
-        // return Rect.fromCenter(
-        //   center: bounds.center,
-        //   width: scanAreaSize,
-        //   height: scanAreaSize,
-        // );
       };
 
   void _setCustomPaint({required ScanItProcessorEvent event}) {
