@@ -1,6 +1,8 @@
 import 'dart:math';
 
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 import '../painters/barcode_detector_painter.dart';
@@ -43,5 +45,38 @@ extension RectExtension on Rect {
       ..translateByVector3(Vector3(-anchor.dx, -anchor.dy, 0));
 
     return MatrixUtils.transformRect(matrix, this);
+  }
+}
+
+extension CameraValueExtension on CameraValue {
+  bool get isLandscape {
+    return applicableOrientation.isLandscape;
+  }
+
+  int get quarterTurns {
+    final Map<DeviceOrientation, int> turns = <DeviceOrientation, int>{
+      DeviceOrientation.portraitUp: 0,
+      DeviceOrientation.landscapeRight: 1,
+      DeviceOrientation.portraitDown: 2,
+      DeviceOrientation.landscapeLeft: 3,
+    };
+    return turns[applicableOrientation]!;
+  }
+
+  DeviceOrientation get applicableOrientation {
+    return isRecordingVideo
+        ? recordingOrientation!
+        : (previewPauseOrientation ??
+              lockedCaptureOrientation ??
+              deviceOrientation);
+  }
+}
+
+extension DeviceOrientationExtension on DeviceOrientation {
+  bool get isLandscape {
+    return <DeviceOrientation>[
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ].contains(this);
   }
 }

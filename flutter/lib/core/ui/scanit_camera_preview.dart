@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:nil/nil.dart';
+import 'package:scanit/core/utils/scanit_utils.dart';
 
 typedef OnPreviewReady =
     void Function({
@@ -148,7 +149,7 @@ class _ScanItCameraPreviewState extends State<ScanItCameraPreview>
         final previewSize = cameraValue.previewSize;
         if (previewSize == null) return Nil();
 
-        final aspectRatio = _isLandscape(cameraValue: cameraValue)
+        final aspectRatio = cameraValue.isLandscape
             ? previewSize.aspectRatio
             : (1 / previewSize.aspectRatio);
 
@@ -185,35 +186,8 @@ class _ScanItCameraPreviewState extends State<ScanItCameraPreview>
   }) {
     if (defaultTargetPlatform != TargetPlatform.android) return child;
     return RotatedBox(
-      quarterTurns: _getQuarterTurns(cameraValue: cameraValue),
+      quarterTurns: cameraValue.quarterTurns,
       child: child,
     );
-  }
-
-  bool _isLandscape({required CameraValue cameraValue}) {
-    return <DeviceOrientation>[
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ].contains(_getApplicableOrientation(cameraValue: cameraValue));
-  }
-
-  int _getQuarterTurns({required CameraValue cameraValue}) {
-    final Map<DeviceOrientation, int> turns = <DeviceOrientation, int>{
-      DeviceOrientation.portraitUp: 0,
-      DeviceOrientation.landscapeRight: 1,
-      DeviceOrientation.portraitDown: 2,
-      DeviceOrientation.landscapeLeft: 3,
-    };
-    return turns[_getApplicableOrientation(cameraValue: cameraValue)]!;
-  }
-
-  DeviceOrientation _getApplicableOrientation({
-    required CameraValue cameraValue,
-  }) {
-    return cameraValue.isRecordingVideo
-        ? cameraValue.recordingOrientation!
-        : (cameraValue.previewPauseOrientation ??
-              cameraValue.lockedCaptureOrientation ??
-              cameraValue.deviceOrientation);
   }
 }

@@ -1,13 +1,16 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:async/async.dart';
 import 'package:camera/camera.dart';
 import 'package:command_it/command_it.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:scanit/core/detection_mode.dart';
 import 'package:scanit/core/scanit_controller_state.dart';
+import 'package:scanit/core/utils/scanit_utils.dart';
 
 import 'processing/scanit_processor.dart';
 
@@ -85,6 +88,7 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
       _processCameraImage(
         cameraImage: cameraImage,
         cameraLensDirection: cameraController.description.lensDirection,
+        deviceOrientation: cameraController.value.applicableOrientation,
       );
     });
 
@@ -94,20 +98,27 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
   Future<void> _processCameraImage({
     required CameraImage cameraImage,
     required CameraLensDirection cameraLensDirection,
+    required DeviceOrientation deviceOrientation,
   }) async {
     final scanArea = value.scanArea;
-    final bounds = value.bounds;
+    final widgetSize = value.widgetSize;
     final inputImageRotation = value.inputImageRotation;
-    if (scanArea == null || bounds == null || inputImageRotation == null) {
+    if (scanArea == null || widgetSize == null || inputImageRotation == null) {
       return;
     }
+
+    final imageBounds = Rect.fromLTWH(
+      0,
+      0,
+      cameraImage.width.toDouble(),
+      cameraImage.height.toDouble(),
+    );
 
     final future = _scanItProcessor
         .processCameraImage(
           cameraImage: cameraImage,
           detectionMode: value.detectionMode,
           scanArea: scanArea,
-          bounds: bounds,
           inputImageRotation: inputImageRotation,
           cameraLensDirection: cameraLensDirection,
         )
@@ -150,13 +161,13 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
 
   void onPreviewReady({
     required Rect scanArea,
-    required Rect bounds,
+    required Size widgetSize,
     required Size previewSize,
     required InputImageRotation inputImageRotation,
   }) {
     value = value.copyWith(
       scanArea: scanArea,
-      bounds: bounds,
+      widgetSize: widgetSize,
       previewSize: previewSize,
       inputImageRotation: inputImageRotation,
     );

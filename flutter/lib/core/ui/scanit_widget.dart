@@ -108,7 +108,7 @@ class _ScanItWidgetState extends State<ScanItWidget>
 
     widget.controller.onPreviewReady(
       scanArea: scanArea ?? bounds,
-      bounds: bounds,
+      widgetSize: widgetSize,
       previewSize: previewSize,
       inputImageRotation: inputImageRotation,
     );

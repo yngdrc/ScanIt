@@ -9,7 +9,7 @@ class ScanItControllerState {
   const ScanItControllerState({
     required this.detectionMode,
     this.scanArea,
-    this.bounds,
+    this.widgetSize,
     this.previewSize,
     this.inputImageRotation,
     this.cameraController,
@@ -17,7 +17,7 @@ class ScanItControllerState {
 
   final DetectionMode detectionMode;
   final Rect? scanArea;
-  final Rect? bounds;
+  final Size? widgetSize;
   final Size? previewSize;
   final InputImageRotation? inputImageRotation;
   final CameraController? cameraController;
@@ -30,7 +30,7 @@ class ScanItControllerState {
   ScanItControllerState copyWith({
     DetectionMode? detectionMode,
     Rect? scanArea,
-    Rect? bounds,
+    Size? widgetSize,
     Size? previewSize,
     DeviceOrientation? deviceOrientation,
     InputImageRotation? inputImageRotation,
@@ -39,7 +39,7 @@ class ScanItControllerState {
     return ScanItControllerState(
       detectionMode: detectionMode ?? this.detectionMode,
       scanArea: scanArea ?? this.scanArea,
-      bounds: bounds ?? this.bounds,
+      widgetSize: widgetSize ?? this.widgetSize,
       previewSize: previewSize ?? this.previewSize,
       inputImageRotation: inputImageRotation ?? this.inputImageRotation,
       cameraController: cameraController ?? this.cameraController,

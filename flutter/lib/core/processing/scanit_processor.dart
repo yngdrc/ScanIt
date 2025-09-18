@@ -60,7 +60,6 @@ class ScanItProcessor {
     required CameraImage cameraImage,
     required DetectionMode detectionMode,
     required Rect scanArea,
-    required Rect bounds,
     required InputImageRotation inputImageRotation,
     required CameraLensDirection cameraLensDirection,
   }) async {
@@ -68,24 +67,10 @@ class ScanItProcessor {
     if (_isBusy) return null;
     _isBusy = true;
 
-    final imageBounds = Rect.fromLTWH(
-      0,
-      0,
-      cameraImage.width.toDouble(),
-      cameraImage.height.toDouble(),
-    );
-
-    final scale = bounds.longestSide / imageBounds.longestSide;
-    final scaledBounds = Rect.fromCenter(
-      center: imageBounds.center,
-      width: bounds.width / scale,
-      height: bounds.height / scale,
-    ).rotateBy(angle: inputImageRotation.rawValue).intersect(imageBounds);
-
     ScanItProcessorEvent? event;
     try {
       final inputImage = await cameraImage.inputImageFromBytes(
-        cropRect: scaledBounds,
+        cropRect: scanArea,
         rotation: inputImageRotation,
       );
 
@@ -98,8 +83,11 @@ class ScanItProcessor {
         inputImage: inputImage,
         lensDirection: cameraLensDirection,
         detectionMode: detectionMode,
-        imageSize: imageBounds.size,
-        scanArea: scaledBounds,
+        imageSize: Size(
+          cameraImage.width.toDouble(),
+          cameraImage.height.toDouble(),
+        ),
+        scanArea: scanArea,
       );
     } catch (e) {
       // TODO: handle error
