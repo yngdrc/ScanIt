@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:camera/camera.dart';
 import 'package:command_it/command_it.dart';
@@ -152,7 +153,8 @@ class _ScanItCameraPreviewState extends State<ScanItCameraPreview>
             : (1 / previewSize.aspectRatio);
 
         final scale =
-            widget.constraints.biggest.longestSide / previewSize.shortestSide;
+            max(widget.constraints.biggest.aspectRatio, aspectRatio) /
+            min(widget.constraints.biggest.aspectRatio, aspectRatio);
 
         return Transform.scale(
           scale: scale,

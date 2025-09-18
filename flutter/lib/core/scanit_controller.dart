@@ -56,7 +56,7 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
 
     final CameraController cameraController = CameraController(
       cameraDescription,
-      ResolutionPreset.high,
+      ResolutionPreset.medium,
       enableAudio: false,
     );
 

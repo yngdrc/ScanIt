@@ -34,13 +34,13 @@ CustomPainter? painterFromEvent({required ScanItProcessorEvent event}) {
 }
 
 extension RectExtension on Rect {
-  Rect rotateBy({required int angle}) {
+  Rect rotateBy({required int angle, Offset? anchor}) {
+    anchor ??= center;
     final radians = angle * (pi / 180);
-    final center = this.center;
     final matrix = Matrix4.identity()
-      ..translateByVector3(Vector3(center.dx, center.dy, 0))
+      ..translateByVector3(Vector3(anchor.dx, anchor.dy, 0))
       ..rotateZ(radians)
-      ..translateByVector3(Vector3(-center.dx, -center.dy, 0));
+      ..translateByVector3(Vector3(-anchor.dx, -anchor.dy, 0));
 
     return MatrixUtils.transformRect(matrix, this);
   }
