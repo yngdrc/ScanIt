@@ -114,11 +114,18 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
       cameraImage.height.toDouble(),
     );
 
+    final scale = imageBounds.longestSide / widgetSize.longestSide;
+    final scaledBounds = Rect.fromCenter(
+      center: imageBounds.center,
+      width: widgetSize.width * scale,
+      height: widgetSize.height * scale,
+    ).rotateBy(angle: -inputImageRotation.rawValue);
+
     final future = _scanItProcessor
         .processCameraImage(
           cameraImage: cameraImage,
           detectionMode: value.detectionMode,
-          scanArea: scanArea,
+          scanArea: scaledBounds,
           inputImageRotation: inputImageRotation,
           cameraLensDirection: cameraLensDirection,
         )
