@@ -14,7 +14,8 @@ typedef OnPreviewReady =
     void Function({
       required Size widgetSize,
       required Size previewSize,
-      required InputImageRotation inputImageRotation,
+      required CameraDescription cameraDescription,
+      required DeviceOrientation deviceOrientation,
     });
 
 class ScanItCameraPreview extends StatefulWidget {
@@ -37,7 +38,13 @@ class ScanItCameraPreview extends StatefulWidget {
 
 class _ScanItCameraPreviewState extends State<ScanItCameraPreview>
     with WidgetsBindingObserver {
-  ListenableSubscription? _previewSizeSubscription;
+  ValueListenable<(Size?, DeviceOrientation)> get _previewReadyListenable =>
+      widget.cameraController.valueListenableCombiner(
+        (cameraValue) =>
+            (cameraValue.previewSize, cameraValue.deviceOrientation),
+      );
+
+  ListenableSubscription? _previewReadySubscription;
 
   @override
   void initState() {
@@ -65,76 +72,23 @@ class _ScanItCameraPreviewState extends State<ScanItCameraPreview>
     super.dispose();
   }
 
-  ValueListenable<Size?> get _previewSizeListenable =>
-      widget.cameraController.select((cameraValue) => cameraValue.previewSize);
-
-  ValueListenable<DeviceOrientation> get _deviceOrientationListenable => widget
-      .cameraController
-      .select((cameraValue) => cameraValue.deviceOrientation);
-
   void _setupListeners() {
-    _previewSizeSubscription = _previewSizeListenable
-        .combineLatest(
-          _deviceOrientationListenable,
-          (previewSize, deviceOrientation) => (previewSize, deviceOrientation),
-        )
-        .listen((data, _) {
-          final (previewSize, deviceOrientation) = data;
-          if (previewSize == null) return;
+    _previewReadySubscription = _previewReadyListenable.listen((data, _) {
+      final (previewSize, deviceOrientation) = data;
+      if (previewSize == null) return;
 
-          final cameraDescription = widget.cameraController.description;
-          final sensorOrientation = cameraDescription.sensorOrientation;
-          final lensDirection = cameraDescription.lensDirection;
-
-          /**
-       * get image rotation
-       * it is used in android to convert the InputImage from Dart to Java: https://github.com/flutter-ml/google_ml_kit_flutter/blob/master/packages/google_mlkit_commons/android/src/main/java/com/google_mlkit_commons/InputImageConverter.java
-       * `rotation` is not used in iOS to convert the InputImage from Dart to Obj-C: https://github.com/flutter-ml/google_ml_kit_flutter/blob/master/packages/google_mlkit_commons/ios/Classes/MLKVisionImage%2BFlutterPlugin.m
-       * in both platforms `rotation` and `camera.lensDirection` can be used to compensate `x` and `y` coordinates on a canvas: https://github.com/flutter-ml/google_ml_kit_flutter/blob/master/packages/example/lib/vision_detector_views/painters/coordinates_translator.dart
-       */
-          InputImageRotation? inputImageRotation;
-          if (Platform.isIOS) {
-            inputImageRotation = InputImageRotationValue.fromRawValue(
-              sensorOrientation,
-            );
-          } else if (Platform.isAndroid) {
-            final orientations = {
-              DeviceOrientation.portraitUp: 0,
-              DeviceOrientation.landscapeLeft: 90,
-              DeviceOrientation.portraitDown: 180,
-              DeviceOrientation.landscapeRight: 270,
-            };
-
-            var rotationCompensation = orientations[deviceOrientation];
-
-            if (rotationCompensation == null) return;
-            if (lensDirection == CameraLensDirection.front) {
-              // front-facing
-              rotationCompensation =
-                  (sensorOrientation + rotationCompensation) % 360;
-            } else {
-              // back-facing
-              rotationCompensation =
-                  (sensorOrientation - rotationCompensation + 360) % 360;
-            }
-            inputImageRotation = InputImageRotationValue.fromRawValue(
-              rotationCompensation,
-            );
-          }
-
-          if (inputImageRotation == null) return;
-
-          widget.onPreviewReady?.call(
-            widgetSize: widget.constraints.biggest,
-            previewSize: previewSize,
-            inputImageRotation: inputImageRotation,
-          );
-        });
+      widget.onPreviewReady?.call(
+        widgetSize: widget.constraints.biggest,
+        previewSize: previewSize,
+        cameraDescription: widget.cameraController.description,
+        deviceOrientation: deviceOrientation,
+      );
+    });
   }
 
   void _disposeListeners() {
-    _previewSizeSubscription?.cancel();
-    _previewSizeSubscription = null;
+    _previewReadySubscription?.cancel();
+    _previewReadySubscription = null;
   }
 
   @override
@@ -185,9 +139,6 @@ class _ScanItCameraPreviewState extends State<ScanItCameraPreview>
     required Widget child,
   }) {
     if (defaultTargetPlatform != TargetPlatform.android) return child;
-    return RotatedBox(
-      quarterTurns: cameraValue.quarterTurns,
-      child: child,
-    );
+    return RotatedBox(quarterTurns: cameraValue.quarterTurns, child: child);
   }
 }

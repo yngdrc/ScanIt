@@ -1,8 +1,11 @@
 import 'dart:math';
 
 import 'package:camera/camera.dart';
+import 'package:command_it/command_it.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 import '../painters/barcode_detector_painter.dart';
@@ -18,19 +21,21 @@ CustomPainter? painterFromEvent({required ScanItProcessorEvent event}) {
       if (event.barcodes.isEmpty) return null;
       return BarcodeDetectorPainter(
         imageSize: event.imageSize,
-        rotation: rotation,
+        inputImageRotation: rotation,
         barcodes: event.barcodes,
         cameraLensDirection: event.lensDirection,
         scanArea: event.scanArea,
+        scale: event.scale,
       );
     case TextRecognizedEvent _:
       if (event.recognizedText.text.isEmpty) return null;
       return TextRecognizerPainter(
         imageSize: event.imageSize,
-        rotation: rotation,
+        inputImageRotation: rotation,
         recognizedText: event.recognizedText,
         cameraLensDirection: event.lensDirection,
         scanArea: event.scanArea,
+        scale: event.scale,
       );
   }
 }
@@ -45,6 +50,10 @@ extension RectExtension on Rect {
       ..translateByVector3(Vector3(-anchor.dx, -anchor.dy, 0));
 
     return MatrixUtils.transformRect(matrix, this);
+  }
+
+  Rect transform(Rect Function(Rect) transformScope) {
+    return transformScope(this);
   }
 }
 
@@ -78,5 +87,16 @@ extension DeviceOrientationExtension on DeviceOrientation {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ].contains(this);
+  }
+}
+
+extension CameraControllerExtension on CameraController {
+  ValueListenable<(TIn1, TIn2)> valueListenableCombiner<TIn1, TIn2>(
+    (TIn1, TIn2) Function(CameraValue) combiner,
+  ) {
+    final in1 = select((cameraValue) => combiner(cameraValue).$1);
+    final in2 = select((cameraValue) => combiner(cameraValue).$2);
+
+    return in1.combineLatest(in2, (i1, i2) => (i1, i2));
   }
 }

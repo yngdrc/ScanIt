@@ -8,30 +8,27 @@ double translateX(
   double x,
   Size canvasSize,
   Size imageSize,
-  InputImageRotation rotation,
+  InputImageRotation inputImageRotation,
   CameraLensDirection cameraLensDirection,
-  Rect? scanArea,
+  Rect scanArea,
+  double scale,
 ) {
-  switch (rotation) {
+  switch (inputImageRotation) {
     case InputImageRotation.rotation90deg:
-      return ((scanArea?.top ?? 0) + x) *
-          canvasSize.width /
-          (Platform.isIOS ? imageSize.width : imageSize.height);
     case InputImageRotation.rotation270deg:
-      return ((scanArea?.top ?? 0) + canvasSize.width - x) *
+      final scale1 =
           canvasSize.width /
           (Platform.isIOS ? imageSize.width : imageSize.height);
+
+      return (scanArea.left + x) / scale;
     case InputImageRotation.rotation0deg:
     case InputImageRotation.rotation180deg:
+      final scale = canvasSize.width / imageSize.width;
       switch (cameraLensDirection) {
         case CameraLensDirection.back:
-          return ((scanArea?.left ?? 0) + x) *
-              canvasSize.width /
-              imageSize.width;
+          return (scanArea.left + x) * scale;
         default:
-          return ((scanArea?.left ?? 0) + canvasSize.width - x) *
-              canvasSize.width /
-              imageSize.width;
+          return (scanArea.left + canvasSize.width - x) * scale;
       }
   }
 }
@@ -42,18 +39,16 @@ double translateY(
   Size imageSize,
   InputImageRotation rotation,
   CameraLensDirection cameraLensDirection,
-  Rect? scanArea,
+  Rect scanArea,
 ) {
   switch (rotation) {
     case InputImageRotation.rotation90deg:
     case InputImageRotation.rotation270deg:
-      return ((scanArea?.left ?? 0) + y) *
+      return (scanArea.left + y) *
           canvasSize.height /
           (Platform.isIOS ? imageSize.height : imageSize.width);
     case InputImageRotation.rotation0deg:
     case InputImageRotation.rotation180deg:
-      return ((scanArea?.top ?? 0) + y) *
-          canvasSize.height /
-          imageSize.height;
+      return (scanArea.top + y) * canvasSize.height / imageSize.height;
   }
 }

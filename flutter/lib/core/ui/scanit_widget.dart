@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:nil/nil.dart';
 import 'package:scanit/core/scanit_controller.dart';
@@ -9,6 +11,8 @@ import 'package:scanit/core/ui/scanit_camera_preview.dart';
 import '../processing/scanit_processor.dart';
 import '../scanit_controller_state.dart';
 
+/// A function that initializes the scanning area based on the size of the widget.
+/// The function takes the size of the widget as a parameter and returns a [Rect]
 typedef ScanAreaInitializer = Rect Function({required Size widgetSize});
 
 typedef OnBarcodesDetected =
@@ -96,10 +100,14 @@ class _ScanItWidgetState extends State<ScanItWidget>
     _recognizedTextSubscription = null;
   }
 
+  /// Calls the [ScanAreaInitializer] (if provided) to get the scan area
+  /// and notifies the controller that the camera preview is ready.
+  /// The max bounds of the scan area is the size of the widget.
   void _onPreviewReady({
     required Size widgetSize,
     required Size previewSize,
-    required InputImageRotation inputImageRotation,
+    required CameraDescription cameraDescription,
+    required DeviceOrientation deviceOrientation,
   }) {
     final bounds = Rect.fromLTWH(0, 0, widgetSize.width, widgetSize.height);
     final scanArea = widget.scanAreaInitializer
@@ -110,7 +118,8 @@ class _ScanItWidgetState extends State<ScanItWidget>
       scanArea: scanArea ?? bounds,
       widgetSize: widgetSize,
       previewSize: previewSize,
-      inputImageRotation: inputImageRotation,
+      cameraDescription: cameraDescription,
+      deviceOrientation: deviceOrientation,
     );
   }
 

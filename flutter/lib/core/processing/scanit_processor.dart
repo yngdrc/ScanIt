@@ -15,12 +15,14 @@ sealed class ScanItProcessorEvent {
     required this.lensDirection,
     required this.imageSize,
     required this.scanArea,
+    required this.scale,
   });
 
   final InputImage inputImage;
   final CameraLensDirection lensDirection;
   final Size imageSize;
-  final Rect? scanArea;
+  final Rect scanArea;
+  final double scale;
 }
 
 class BarcodesDetectedEvent extends ScanItProcessorEvent {
@@ -30,6 +32,7 @@ class BarcodesDetectedEvent extends ScanItProcessorEvent {
     required super.lensDirection,
     required super.imageSize,
     required super.scanArea,
+    required super.scale,
   });
 
   final List<Barcode> barcodes;
@@ -42,6 +45,7 @@ class TextRecognizedEvent extends ScanItProcessorEvent {
     required super.lensDirection,
     required super.imageSize,
     required super.scanArea,
+    required super.scale,
   });
 
   final RecognizedText recognizedText;
@@ -62,6 +66,7 @@ class ScanItProcessor {
     required Rect scanArea,
     required InputImageRotation inputImageRotation,
     required CameraLensDirection cameraLensDirection,
+    required double scale,
   }) async {
     if (!_canProcess) return null;
     if (_isBusy) return null;
@@ -88,6 +93,7 @@ class ScanItProcessor {
           cameraImage.height.toDouble(),
         ),
         scanArea: scanArea,
+        scale: scale,
       );
     } catch (e) {
       // TODO: handle error
@@ -102,6 +108,7 @@ class ScanItProcessor {
     required XFile xFile,
     required DetectionMode detectionMode,
     required Rect scanArea,
+    required double scale,
   }) async {
     if (!_canProcess) return null;
     if (_isBusy) return null;
@@ -118,6 +125,7 @@ class ScanItProcessor {
       detectionMode: detectionMode,
       imageSize: imageSize,
       scanArea: scanArea,
+      scale: scale,
     );
 
     _isBusy = false;
@@ -129,7 +137,8 @@ class ScanItProcessor {
     required CameraLensDirection lensDirection,
     required DetectionMode detectionMode,
     required Size imageSize,
-    required Rect? scanArea,
+    required Rect scanArea,
+    required double scale,
   }) async {
     switch (detectionMode) {
       case DetectionMode.barcode:
@@ -140,6 +149,7 @@ class ScanItProcessor {
           lensDirection: lensDirection,
           imageSize: imageSize,
           scanArea: scanArea,
+          scale: scale
         );
       case DetectionMode.ocr:
         final recognizedText = await _textRecognizer.processImage(inputImage);
@@ -149,6 +159,7 @@ class ScanItProcessor {
           lensDirection: lensDirection,
           imageSize: imageSize,
           scanArea: scanArea,
+          scale: scale,
         );
     }
   }

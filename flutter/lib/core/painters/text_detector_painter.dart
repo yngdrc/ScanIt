@@ -11,17 +11,19 @@ import '../utils/coordinates_translator.dart';
 class TextRecognizerPainter extends CustomPainter {
   TextRecognizerPainter({
     required this.imageSize,
-    required this.rotation,
+    required this.inputImageRotation,
     required this.recognizedText,
     required this.cameraLensDirection,
     required this.scanArea,
+    required this.scale,
   });
 
   final Size imageSize;
-  final InputImageRotation rotation;
+  final InputImageRotation inputImageRotation;
   final RecognizedText recognizedText;
   final CameraLensDirection cameraLensDirection;
-  final Rect? scanArea;
+  final Rect scanArea;
+  final double scale;
 
   final _edgePaint = Paint()
     ..style = PaintingStyle.stroke
@@ -58,16 +60,17 @@ class TextRecognizerPainter extends CustomPainter {
         point.x.toDouble(),
         size,
         imageSize,
-        rotation,
+        inputImageRotation,
         cameraLensDirection,
         scanArea,
+        scale,
       );
 
       double y = translateY(
         point.y.toDouble(),
         size,
         imageSize,
-        rotation,
+        inputImageRotation,
         cameraLensDirection,
         scanArea,
       );
@@ -75,7 +78,7 @@ class TextRecognizerPainter extends CustomPainter {
       if (Platform.isAndroid) {
         switch (cameraLensDirection) {
           case CameraLensDirection.front:
-            switch (rotation) {
+            switch (inputImageRotation) {
               case InputImageRotation.rotation0deg:
               case InputImageRotation.rotation90deg:
                 break;
@@ -88,9 +91,10 @@ class TextRecognizerPainter extends CustomPainter {
                   point.y.toDouble(),
                   size,
                   imageSize,
-                  rotation,
+                  inputImageRotation,
                   cameraLensDirection,
                   scanArea,
+                  scale,
                 );
 
                 y =
@@ -99,7 +103,7 @@ class TextRecognizerPainter extends CustomPainter {
                           point.x.toDouble(),
                           size,
                           imageSize,
-                          rotation,
+                          inputImageRotation,
                           cameraLensDirection,
                           scanArea,
                         );
@@ -107,7 +111,7 @@ class TextRecognizerPainter extends CustomPainter {
             }
             break;
           case CameraLensDirection.back:
-            switch (rotation) {
+            switch (inputImageRotation) {
               case InputImageRotation.rotation0deg:
               case InputImageRotation.rotation270deg:
                 break;
@@ -122,15 +126,16 @@ class TextRecognizerPainter extends CustomPainter {
                           point.y.toDouble(),
                           size,
                           imageSize,
-                          rotation,
+                          inputImageRotation,
                           cameraLensDirection,
                           scanArea,
+                          scale,
                         );
                 y = translateY(
                   point.x.toDouble(),
                   size,
                   imageSize,
-                  rotation,
+                  inputImageRotation,
                   cameraLensDirection,
                   scanArea,
                 );
@@ -163,16 +168,17 @@ class TextRecognizerPainter extends CustomPainter {
       textBlock.boundingBox.left,
       size,
       imageSize,
-      rotation,
+      inputImageRotation,
       cameraLensDirection,
       scanArea,
+      scale,
     );
 
     final top = translateY(
       textBlock.boundingBox.top,
       size,
       imageSize,
-      rotation,
+      inputImageRotation,
       cameraLensDirection,
       scanArea,
     );
@@ -181,9 +187,10 @@ class TextRecognizerPainter extends CustomPainter {
       textBlock.boundingBox.right,
       size,
       imageSize,
-      rotation,
+      inputImageRotation,
       cameraLensDirection,
       scanArea,
+      scale,
     );
 
     final paragraphConstraints = ParagraphConstraints(

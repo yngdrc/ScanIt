@@ -20,7 +20,6 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> {
   final ScanItController _scanItController = ScanItController();
   CustomPaint? _customPaint;
 
-  // TODO: limit rect position to be inside the visible preview area
   ScanAreaInitializer get _scanAreaInitializer =>
       ({required Size widgetSize}) {
         final scanAreaSize = widgetSize.shortestSide / 2;

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:async/async.dart';
@@ -59,7 +60,7 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
 
     final CameraController cameraController = CameraController(
       cameraDescription,
-      ResolutionPreset.medium,
+      ResolutionPreset.high,
       enableAudio: false,
     );
 
@@ -121,13 +122,49 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
       height: widgetSize.height * scale,
     ).rotateBy(angle: -inputImageRotation.rawValue);
 
+    final calculatedScanArea =
+        Rect.fromLTWH(
+          scanArea.left * scale,
+          scanArea.top * scale,
+          scanArea.width * scale,
+          scanArea.height * scale,
+        ).transform((rect) {
+          final newRect = switch (inputImageRotation) {
+            InputImageRotation.rotation0deg => rect.shift(scaledBounds.topLeft),
+            InputImageRotation.rotation90deg =>
+              rect
+                  .shift(scaledBounds.bottomLeft)
+                  .rotateBy(
+                    angle: -inputImageRotation.rawValue,
+                    anchor: scaledBounds.bottomLeft,
+                  ),
+            InputImageRotation.rotation180deg =>
+              rect
+                  .shift(scaledBounds.bottomRight)
+                  .rotateBy(
+                    angle: inputImageRotation.rawValue,
+                    anchor: scaledBounds.bottomRight,
+                  ),
+            InputImageRotation.rotation270deg =>
+              rect
+                  .shift(scaledBounds.topRight)
+                  .rotateBy(
+                    angle: inputImageRotation.rawValue,
+                    anchor: scaledBounds.topRight,
+                  ),
+          };
+
+          return newRect;
+        });
+
     final future = _scanItProcessor
         .processCameraImage(
           cameraImage: cameraImage,
           detectionMode: value.detectionMode,
-          scanArea: scaledBounds,
+          scanArea: calculatedScanArea,
           inputImageRotation: inputImageRotation,
           cameraLensDirection: cameraLensDirection,
+          scale: scale,
         )
         .then((event) {
           if (event == null) return;
@@ -148,6 +185,7 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
           xFile: xFile,
           detectionMode: value.detectionMode,
           scanArea: scanArea,
+          scale: 0,
         )
         .then((event) {
           if (event == null) return;
@@ -170,8 +208,49 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
     required Rect scanArea,
     required Size widgetSize,
     required Size previewSize,
-    required InputImageRotation inputImageRotation,
+    required CameraDescription cameraDescription,
+    required DeviceOrientation deviceOrientation,
   }) {
+    final sensorOrientation = cameraDescription.sensorOrientation;
+    final lensDirection = cameraDescription.lensDirection;
+
+    /**
+     * get image rotation
+     * it is used in android to convert the InputImage from Dart to Java: https://github.com/flutter-ml/google_ml_kit_flutter/blob/master/packages/google_mlkit_commons/android/src/main/java/com/google_mlkit_commons/InputImageConverter.java
+     * `rotation` is not used in iOS to convert the InputImage from Dart to Obj-C: https://github.com/flutter-ml/google_ml_kit_flutter/blob/master/packages/google_mlkit_commons/ios/Classes/MLKVisionImage%2BFlutterPlugin.m
+     * in both platforms `rotation` and `camera.lensDirection` can be used to compensate `x` and `y` coordinates on a canvas: https://github.com/flutter-ml/google_ml_kit_flutter/blob/master/packages/example/lib/vision_detector_views/painters/coordinates_translator.dart
+     */
+    InputImageRotation? inputImageRotation;
+    if (Platform.isIOS) {
+      inputImageRotation = InputImageRotationValue.fromRawValue(
+        sensorOrientation,
+      );
+    } else if (Platform.isAndroid) {
+      final orientations = {
+        DeviceOrientation.portraitUp: 0,
+        DeviceOrientation.landscapeLeft: 90,
+        DeviceOrientation.portraitDown: 180,
+        DeviceOrientation.landscapeRight: 270,
+      };
+
+      var rotationCompensation = orientations[deviceOrientation];
+
+      if (rotationCompensation == null) return;
+      if (lensDirection == CameraLensDirection.front) {
+        // front-facing
+        rotationCompensation = (sensorOrientation + rotationCompensation) % 360;
+      } else {
+        // back-facing
+        rotationCompensation =
+            (sensorOrientation - rotationCompensation + 360) % 360;
+      }
+      inputImageRotation = InputImageRotationValue.fromRawValue(
+        rotationCompensation,
+      );
+    }
+
+    if (inputImageRotation == null) return;
+
     value = value.copyWith(
       scanArea: scanArea,
       widgetSize: widgetSize,

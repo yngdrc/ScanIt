@@ -11,17 +11,19 @@ import '../utils/coordinates_translator.dart';
 class BarcodeDetectorPainter extends CustomPainter {
   BarcodeDetectorPainter({
     required this.imageSize,
-    required this.rotation,
+    required this.inputImageRotation,
     required this.barcodes,
     required this.cameraLensDirection,
     required this.scanArea,
+    required this.scale
   });
 
   final Size imageSize;
-  final InputImageRotation rotation;
+  final InputImageRotation inputImageRotation;
   final List<Barcode> barcodes;
   final CameraLensDirection cameraLensDirection;
-  final Rect? scanArea;
+  final Rect scanArea;
+  final double scale;
 
   final _edgePaint = Paint()
     ..style = PaintingStyle.stroke
@@ -58,16 +60,17 @@ class BarcodeDetectorPainter extends CustomPainter {
         point.x.toDouble(),
         size,
         imageSize,
-        rotation,
+        inputImageRotation,
         cameraLensDirection,
         scanArea,
+        scale,
       );
 
       final y = translateY(
         point.y.toDouble(),
         size,
         imageSize,
-        rotation,
+        inputImageRotation,
         cameraLensDirection,
         scanArea,
       );
@@ -93,16 +96,17 @@ class BarcodeDetectorPainter extends CustomPainter {
       barcode.boundingBox.left,
       size,
       imageSize,
-      rotation,
+      inputImageRotation,
       cameraLensDirection,
       scanArea,
+      scale,
     );
 
     final top = translateY(
       barcode.boundingBox.top,
       size,
       imageSize,
-      rotation,
+      inputImageRotation,
       cameraLensDirection,
       scanArea,
     );
@@ -111,9 +115,10 @@ class BarcodeDetectorPainter extends CustomPainter {
       barcode.boundingBox.right,
       size,
       imageSize,
-      rotation,
+      inputImageRotation,
       cameraLensDirection,
       scanArea,
+      scale,
     );
 
     final paragraphConstraints = ParagraphConstraints(
