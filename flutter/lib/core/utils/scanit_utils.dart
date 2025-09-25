@@ -11,32 +11,46 @@ import 'package:vector_math/vector_math_64.dart';
 import '../painters/barcode_detector_painter.dart';
 import '../painters/text_detector_painter.dart';
 import '../processing/scanit_processor.dart';
+import '../processing/scanit_processor_event.dart';
 
-CustomPainter? painterFromEvent({required ScanItProcessorEvent event}) {
-  final rotation = event.inputImage.metadata?.rotation;
-  if (rotation == null) return null;
+extension ScanItProcessorEventExtension on ScanItProcessorEvent {
+  CustomPainter? get painter {
+    return switch (this) {
+      BarcodesDetectedEvent barcodesEvent => barcodesEvent.painter,
+      TextRecognizedEvent textRecognizedEvent => textRecognizedEvent.painter,
+    };
+  }
+}
 
-  switch (event) {
-    case BarcodesDetectedEvent _:
-      if (event.barcodes.isEmpty) return null;
-      return BarcodeDetectorPainter(
-        imageSize: event.imageSize,
-        inputImageRotation: rotation,
-        barcodes: event.barcodes,
-        cameraLensDirection: event.lensDirection,
-        scanArea: event.scanArea,
-        scale: event.scale,
-      );
-    case TextRecognizedEvent _:
-      if (event.recognizedText.text.isEmpty) return null;
-      return TextRecognizerPainter(
-        imageSize: event.imageSize,
-        inputImageRotation: rotation,
-        recognizedText: event.recognizedText,
-        cameraLensDirection: event.lensDirection,
-        scanArea: event.scanArea,
-        scale: event.scale,
-      );
+extension BarcodesDetectedEventExtension on BarcodesDetectedEvent {
+  BarcodeDetectorPainter? get painter {
+    final rotation = inputImage.metadata?.rotation;
+    if (barcodes.isEmpty || rotation == null) return null;
+
+    return BarcodeDetectorPainter(
+      widgetSize: widgetSize,
+      imageSize: imageSize,
+      inputImageRotation: rotation,
+      barcodes: barcodes,
+      cameraLensDirection: lensDirection,
+      scanArea: scanArea,
+    );
+  }
+}
+
+extension TextRecognizedEventExtension on TextRecognizedEvent {
+  TextRecognizerPainter? get painter {
+    final rotation = inputImage.metadata?.rotation;
+    if (recognizedText.text.isEmpty || rotation == null) return null;
+
+    return TextRecognizerPainter(
+      imageSize: imageSize,
+      inputImageRotation: rotation,
+      recognizedText: recognizedText,
+      cameraLensDirection: lensDirection,
+      scanArea: scanArea,
+      widgetSize: widgetSize,
+    );
   }
 }
 
@@ -50,10 +64,6 @@ extension RectExtension on Rect {
       ..translateByVector3(Vector3(-anchor.dx, -anchor.dy, 0));
 
     return MatrixUtils.transformRect(matrix, this);
-  }
-
-  Rect transform(Rect Function(Rect) transformScope) {
-    return transformScope(this);
   }
 }
 
@@ -98,5 +108,17 @@ extension CameraControllerExtension on CameraController {
     final in2 = select((cameraValue) => combiner(cameraValue).$2);
 
     return in1.combineLatest(in2, (i1, i2) => (i1, i2));
+  }
+}
+
+extension SizeExtension on Size {
+  Rect get asBounds {
+    return Rect.fromLTWH(0, 0, width, height);
+  }
+}
+
+extension CameraImageExtension on CameraImage {
+  Size get size {
+    return Size(width.toDouble(), height.toDouble());
   }
 }

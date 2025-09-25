@@ -1,172 +1,193 @@
+import 'dart:async';
 import 'dart:math';
 
+import 'package:async/async.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter/services.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:flutter/widgets.dart';
+import 'package:scanit/core/processing/scanit_processor_event.dart';
+import 'package:scanit/core/processing/text_processor.dart';
 import 'package:scanit/core/utils/camera_image_extension.dart';
 import 'package:scanit/core/utils/scanit_utils.dart';
 
 import '../detection_mode.dart';
+import 'barcode_processor.dart';
 
-sealed class ScanItProcessorEvent {
-  const ScanItProcessorEvent({
-    required this.inputImage,
-    required this.lensDirection,
-    required this.imageSize,
-    required this.scanArea,
-    required this.scale,
-  });
+abstract class ScanItProcessor<TEvent extends ScanItProcessorEvent> {
+  ScanItProcessor(this.detectionMode);
 
-  final InputImage inputImage;
-  final CameraLensDirection lensDirection;
-  final Size imageSize;
-  final Rect scanArea;
-  final double scale;
-}
+  static ScanItProcessor<ScanItProcessorEvent> factoryConstructor({
+    required DetectionMode detectionMode,
+  }) => switch (detectionMode) {
+    DetectionMode.barcode => BarcodeProcessor(),
+    DetectionMode.ocr => TextProcessor(),
+  };
 
-class BarcodesDetectedEvent extends ScanItProcessorEvent {
-  BarcodesDetectedEvent({
-    required this.barcodes,
-    required super.inputImage,
-    required super.lensDirection,
-    required super.imageSize,
-    required super.scanArea,
-    required super.scale,
-  });
+  // factory ScanItProcessor.factory({required DetectionMode detectionMode}) =>
+  //     switch (detectionMode) {
+  //       DetectionMode.barcode => BarcodeProcessor() as ScanItProcessor<TEvent>,
+  //       DetectionMode.ocr => TextProcessor() as ScanItProcessor<TEvent>,
+  //     };
 
-  final List<Barcode> barcodes;
-}
-
-class TextRecognizedEvent extends ScanItProcessorEvent {
-  TextRecognizedEvent({
-    required this.recognizedText,
-    required super.inputImage,
-    required super.lensDirection,
-    required super.imageSize,
-    required super.scanArea,
-    required super.scale,
-  });
-
-  final RecognizedText recognizedText;
-}
-
-class ScanItProcessor {
-  final BarcodeScanner _barcodeScanner = BarcodeScanner();
-  final TextRecognizer _textRecognizer = TextRecognizer(
-    script: TextRecognitionScript.latin,
-  );
+  final DetectionMode detectionMode;
 
   bool _canProcess = true;
-  bool _isBusy = false;
+  CancelableOperation<void>? _processingOperation;
 
-  Future<ScanItProcessorEvent?> processCameraImage({
-    required CameraImage cameraImage,
+  bool get _isBusy {
+    return !(_processingOperation?.isCompleted ?? true) ||
+        !(_processingOperation?.isCanceled ?? true);
+  }
+
+  final StreamController<TEvent> _eventController =
+      StreamController.broadcast();
+
+  Stream<TEvent> get eventStream => _eventController.stream;
+
+  // TODO handle errors
+  Future<TEvent> process({
+    required InputImage inputImage,
+    required CameraLensDirection lensDirection,
     required DetectionMode detectionMode,
+    required Size widgetSize,
+    required Size imageSize,
+    required Rect scanArea,
+  });
+
+  Rect calculateScanArea({
+    required Size imageSize,
+    required Size widgetSize,
+    required InputImageRotation inputImageRotation,
+    required Rect scanArea,
+  }) {
+    final scale = imageSize.longestSide / widgetSize.longestSide;
+    final scaledBounds = Rect.fromCenter(
+      center: imageSize.center(Offset.zero),
+      width: widgetSize.width * scale,
+      height: widgetSize.height * scale,
+    ).rotateBy(angle: -inputImageRotation.rawValue);
+
+    final scaledScanArea = Rect.fromLTWH(
+      scanArea.left * scale,
+      scanArea.top * scale,
+      scanArea.width * scale,
+      scanArea.height * scale,
+    );
+
+    return switch (inputImageRotation) {
+      InputImageRotation.rotation0deg => scaledScanArea.shift(
+        scaledBounds.topLeft,
+      ),
+      InputImageRotation.rotation90deg =>
+        scaledScanArea
+            .shift(scaledBounds.bottomLeft)
+            .rotateBy(
+              angle: -inputImageRotation.rawValue,
+              anchor: scaledBounds.bottomLeft,
+            ),
+      InputImageRotation.rotation180deg =>
+        scaledScanArea
+            .shift(scaledBounds.bottomRight)
+            .rotateBy(
+              angle: inputImageRotation.rawValue,
+              anchor: scaledBounds.bottomRight,
+            ),
+      InputImageRotation.rotation270deg =>
+        scaledScanArea
+            .shift(scaledBounds.topRight)
+            .rotateBy(
+              angle: inputImageRotation.rawValue,
+              anchor: scaledBounds.topRight,
+            ),
+    };
+  }
+
+  void processCameraImage({
+    required CameraImage cameraImage,
     required Rect scanArea,
     required InputImageRotation inputImageRotation,
     required CameraLensDirection cameraLensDirection,
-    required double scale,
-  }) async {
-    if (!_canProcess) return null;
-    if (_isBusy) return null;
-    _isBusy = true;
+    required Size widgetSize,
+    required DeviceOrientation deviceOrientation,
+  }) {
+    if (!_canProcess) return;
+    if (_isBusy) return;
 
-    ScanItProcessorEvent? event;
-    try {
+    final future = Future.sync(() async {
+      scanArea = calculateScanArea(
+        imageSize: cameraImage.size,
+        widgetSize: widgetSize,
+        inputImageRotation: inputImageRotation,
+        scanArea: scanArea,
+      );
+
       final inputImage = await cameraImage.inputImageFromBytes(
         cropRect: scanArea,
         rotation: inputImageRotation,
       );
 
       if (inputImage == null) {
-        _isBusy = false;
+        await cancelProcessing();
         return null;
       }
 
-      event = await _process(
+      final event = await process(
+        widgetSize: widgetSize,
         inputImage: inputImage,
         lensDirection: cameraLensDirection,
         detectionMode: detectionMode,
-        imageSize: Size(
-          cameraImage.width.toDouble(),
-          cameraImage.height.toDouble(),
-        ),
+        imageSize: cameraImage.size,
         scanArea: scanArea,
-        scale: scale,
       );
-    } catch (e) {
-      // TODO: handle error
-    }
 
-    _isBusy = false;
-    return event;
+      _eventController.add(event);
+      _processingOperation = null;
+    });
+
+    _processingOperation = CancelableOperation.fromFuture(future);
   }
 
   // TODO: scanWindow support
-  Future<ScanItProcessorEvent?> processXFile({
+  Future<TEvent?> processXFile({
     required XFile xFile,
-    required DetectionMode detectionMode,
     required Rect scanArea,
+    required Size widgetSize,
     required double scale,
   }) async {
     if (!_canProcess) return null;
     if (_isBusy) return null;
-    _isBusy = true;
 
     final image = await decodeImageFromList(await xFile.readAsBytes());
 
     final imageSize = Size(image.width.toDouble(), image.height.toDouble());
 
     final inputImage = InputImage.fromFilePath(xFile.path);
-    final event = await _process(
+    final event = await process(
       inputImage: inputImage,
       lensDirection: CameraLensDirection.back,
       detectionMode: detectionMode,
+      widgetSize: widgetSize,
       imageSize: imageSize,
       scanArea: scanArea,
-      scale: scale,
     );
 
-    _isBusy = false;
     return event;
   }
 
-  Future<ScanItProcessorEvent> _process({
-    required InputImage inputImage,
-    required CameraLensDirection lensDirection,
-    required DetectionMode detectionMode,
-    required Size imageSize,
-    required Rect scanArea,
-    required double scale,
-  }) async {
-    switch (detectionMode) {
-      case DetectionMode.barcode:
-        final barcodes = await _barcodeScanner.processImage(inputImage);
-        return BarcodesDetectedEvent(
-          barcodes: barcodes,
-          inputImage: inputImage,
-          lensDirection: lensDirection,
-          imageSize: imageSize,
-          scanArea: scanArea,
-          scale: scale
-        );
-      case DetectionMode.ocr:
-        final recognizedText = await _textRecognizer.processImage(inputImage);
-        return TextRecognizedEvent(
-          recognizedText: recognizedText,
-          inputImage: inputImage,
-          lensDirection: lensDirection,
-          imageSize: imageSize,
-          scanArea: scanArea,
-          scale: scale,
-        );
-    }
+  Future<void> cancelProcessing() async {
+    final processingOperation = _processingOperation;
+    if (processingOperation == null) return;
+
+    await processingOperation.cancel().then((_) {
+      _processingOperation = null;
+    });
   }
 
-  void dispose() {
+  Future<void> dispose() async {
     _canProcess = false;
-    _barcodeScanner.close();
-    _textRecognizer.close();
+    await cancelProcessing();
+    await _eventController.close();
   }
 }

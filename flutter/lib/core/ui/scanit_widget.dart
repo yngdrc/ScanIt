@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:nil/nil.dart';
+import 'package:scanit/core/processing/scanit_processor_event.dart';
 import 'package:scanit/core/scanit_controller.dart';
 import 'package:scanit/core/ui/scanit_camera_preview.dart';
 
@@ -51,8 +52,7 @@ class ScanItWidget extends StatefulWidget {
 
 class _ScanItWidgetState extends State<ScanItWidget>
     with WidgetsBindingObserver {
-  StreamSubscription? _barcodesSubscription;
-  StreamSubscription? _recognizedTextSubscription;
+  StreamSubscription? _eventSubscription;
 
   @override
   void initState() {
@@ -84,20 +84,17 @@ class _ScanItWidgetState extends State<ScanItWidget>
   }
 
   void _setupListeners() {
-    _barcodesSubscription = widget.controller.barcodesStream.listen(
-      (event) => widget.onBarcodesDetected?.call(event: event),
-    );
-
-    _recognizedTextSubscription = widget.controller.ocrStream.listen(
-      (event) => widget.onTextDetected?.call(event: event),
+    _eventSubscription = widget.controller.eventStream.listen(
+      (event) => switch (event) {
+        BarcodesDetectedEvent() => widget.onBarcodesDetected?.call(event: event),
+        TextRecognizedEvent() => widget.onTextDetected?.call(event: event),
+      },
     );
   }
 
   void _disposeListeners() {
-    _barcodesSubscription?.cancel();
-    _recognizedTextSubscription?.cancel();
-    _barcodesSubscription = null;
-    _recognizedTextSubscription = null;
+    _eventSubscription?.cancel();
+    _eventSubscription = null;
   }
 
   /// Calls the [ScanAreaInitializer] (if provided) to get the scan area

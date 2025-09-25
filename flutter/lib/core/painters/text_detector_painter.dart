@@ -10,20 +10,20 @@ import '../utils/coordinates_translator.dart';
 
 class TextRecognizerPainter extends CustomPainter {
   TextRecognizerPainter({
+    required this.widgetSize,
     required this.imageSize,
     required this.inputImageRotation,
     required this.recognizedText,
     required this.cameraLensDirection,
     required this.scanArea,
-    required this.scale,
   });
 
+  final Size widgetSize;
   final Size imageSize;
   final InputImageRotation inputImageRotation;
   final RecognizedText recognizedText;
   final CameraLensDirection cameraLensDirection;
   final Rect scanArea;
-  final double scale;
 
   final _edgePaint = Paint()
     ..style = PaintingStyle.stroke
@@ -57,22 +57,22 @@ class TextRecognizerPainter extends CustomPainter {
     final cornerPoints = <Offset>[];
     for (final point in textBlock.cornerPoints) {
       double x = translateX(
-        point.x.toDouble(),
-        size,
-        imageSize,
-        inputImageRotation,
-        cameraLensDirection,
-        scanArea,
-        scale,
+        x: point.x.toDouble(),
+        widgetSize: widgetSize,
+        canvasSize: size,
+        imageSize: imageSize,
+        inputImageRotation: inputImageRotation,
+        cameraLensDirection: cameraLensDirection,
+        scanArea: scanArea,
       );
 
       double y = translateY(
-        point.y.toDouble(),
-        size,
-        imageSize,
-        inputImageRotation,
-        cameraLensDirection,
-        scanArea,
+        y: point.y.toDouble(),
+        canvasSize: size,
+        imageSize: imageSize,
+        inputImageRotation: inputImageRotation,
+        cameraLensDirection: cameraLensDirection,
+        scanArea: scanArea,
       );
 
       if (Platform.isAndroid) {
@@ -88,24 +88,24 @@ class TextRecognizerPainter extends CustomPainter {
                 break;
               case InputImageRotation.rotation270deg:
                 x = translateX(
-                  point.y.toDouble(),
-                  size,
-                  imageSize,
-                  inputImageRotation,
-                  cameraLensDirection,
-                  scanArea,
-                  scale,
+                  x: point.y.toDouble(),
+                  widgetSize: widgetSize,
+                  canvasSize: size,
+                  imageSize: imageSize,
+                  inputImageRotation: inputImageRotation,
+                  cameraLensDirection: cameraLensDirection,
+                  scanArea: scanArea,
                 );
 
                 y =
                     size.height -
                         translateY(
-                          point.x.toDouble(),
-                          size,
-                          imageSize,
-                          inputImageRotation,
-                          cameraLensDirection,
-                          scanArea,
+                          y: point.x.toDouble(),
+                          canvasSize: size,
+                          imageSize: imageSize,
+                          inputImageRotation: inputImageRotation,
+                          cameraLensDirection: cameraLensDirection,
+                          scanArea: scanArea,
                         );
                 break;
             }
@@ -123,21 +123,21 @@ class TextRecognizerPainter extends CustomPainter {
                 x =
                     size.width -
                         translateX(
-                          point.y.toDouble(),
-                          size,
-                          imageSize,
-                          inputImageRotation,
-                          cameraLensDirection,
-                          scanArea,
-                          scale,
+                          x: point.y.toDouble(),
+                          widgetSize: widgetSize,
+                          canvasSize: size,
+                          imageSize: imageSize,
+                          inputImageRotation: inputImageRotation,
+                          cameraLensDirection: cameraLensDirection,
+                          scanArea: scanArea,
                         );
                 y = translateY(
-                  point.x.toDouble(),
-                  size,
-                  imageSize,
-                  inputImageRotation,
-                  cameraLensDirection,
-                  scanArea,
+                  y: point.x.toDouble(),
+                  canvasSize: size,
+                  imageSize: imageSize,
+                  inputImageRotation: inputImageRotation,
+                  cameraLensDirection: cameraLensDirection,
+                  scanArea: scanArea,
                 );
                 break;
             }
@@ -165,32 +165,32 @@ class TextRecognizerPainter extends CustomPainter {
     builder.pop();
 
     final left = translateX(
-      textBlock.boundingBox.left,
-      size,
-      imageSize,
-      inputImageRotation,
-      cameraLensDirection,
-      scanArea,
-      scale,
+      x: textBlock.boundingBox.left,
+      widgetSize: widgetSize,
+      canvasSize: size,
+      imageSize: imageSize,
+      inputImageRotation: inputImageRotation,
+      cameraLensDirection: cameraLensDirection,
+      scanArea: scanArea,
     );
 
     final top = translateY(
-      textBlock.boundingBox.top,
-      size,
-      imageSize,
-      inputImageRotation,
-      cameraLensDirection,
-      scanArea,
+      y: textBlock.boundingBox.top,
+      canvasSize: size,
+      imageSize: imageSize,
+      inputImageRotation: inputImageRotation,
+      cameraLensDirection: cameraLensDirection,
+      scanArea: scanArea,
     );
 
     final right = translateX(
-      textBlock.boundingBox.right,
-      size,
-      imageSize,
-      inputImageRotation,
-      cameraLensDirection,
-      scanArea,
-      scale,
+      x: textBlock.boundingBox.right,
+      widgetSize: widgetSize,
+      canvasSize: size,
+      imageSize: imageSize,
+      inputImageRotation: inputImageRotation,
+      cameraLensDirection: cameraLensDirection,
+      scanArea: scanArea,
     );
 
     final paragraphConstraints = ParagraphConstraints(

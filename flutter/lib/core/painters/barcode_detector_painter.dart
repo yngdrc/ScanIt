@@ -10,20 +10,20 @@ import '../utils/coordinates_translator.dart';
 
 class BarcodeDetectorPainter extends CustomPainter {
   BarcodeDetectorPainter({
+    required this.widgetSize,
     required this.imageSize,
     required this.inputImageRotation,
     required this.barcodes,
     required this.cameraLensDirection,
     required this.scanArea,
-    required this.scale
   });
 
+  final Size widgetSize;
   final Size imageSize;
   final InputImageRotation inputImageRotation;
   final List<Barcode> barcodes;
   final CameraLensDirection cameraLensDirection;
   final Rect scanArea;
-  final double scale;
 
   final _edgePaint = Paint()
     ..style = PaintingStyle.stroke
@@ -57,22 +57,22 @@ class BarcodeDetectorPainter extends CustomPainter {
     final cornerPoints = <Offset>[];
     for (final point in barcode.cornerPoints) {
       final x = translateX(
-        point.x.toDouble(),
-        size,
-        imageSize,
-        inputImageRotation,
-        cameraLensDirection,
-        scanArea,
-        scale,
+        x: point.x.toDouble(),
+        widgetSize: widgetSize,
+        canvasSize: size,
+        imageSize: imageSize,
+        inputImageRotation: inputImageRotation,
+        cameraLensDirection: cameraLensDirection,
+        scanArea: scanArea,
       );
 
       final y = translateY(
-        point.y.toDouble(),
-        size,
-        imageSize,
-        inputImageRotation,
-        cameraLensDirection,
-        scanArea,
+        y: point.y.toDouble(),
+        canvasSize: size,
+        imageSize: imageSize,
+        inputImageRotation: inputImageRotation,
+        cameraLensDirection: cameraLensDirection,
+        scanArea: scanArea,
       );
 
       cornerPoints.add(Offset(x, y));
@@ -93,32 +93,32 @@ class BarcodeDetectorPainter extends CustomPainter {
       ..pop();
 
     final left = translateX(
-      barcode.boundingBox.left,
-      size,
-      imageSize,
-      inputImageRotation,
-      cameraLensDirection,
-      scanArea,
-      scale,
+      x: barcode.boundingBox.left,
+      widgetSize: widgetSize,
+      canvasSize: size,
+      imageSize: imageSize,
+      inputImageRotation: inputImageRotation,
+      cameraLensDirection: cameraLensDirection,
+      scanArea: scanArea,
     );
 
     final top = translateY(
-      barcode.boundingBox.top,
-      size,
-      imageSize,
-      inputImageRotation,
-      cameraLensDirection,
-      scanArea,
+      y: barcode.boundingBox.top,
+      canvasSize: size,
+      imageSize: imageSize,
+      inputImageRotation: inputImageRotation,
+      cameraLensDirection: cameraLensDirection,
+      scanArea: scanArea,
     );
 
     final right = translateX(
-      barcode.boundingBox.right,
-      size,
-      imageSize,
-      inputImageRotation,
-      cameraLensDirection,
-      scanArea,
-      scale,
+      x: barcode.boundingBox.right,
+      widgetSize: widgetSize,
+      canvasSize: size,
+      imageSize: imageSize,
+      inputImageRotation: inputImageRotation,
+      cameraLensDirection: cameraLensDirection,
+      scanArea: scanArea,
     );
 
     final paragraphConstraints = ParagraphConstraints(

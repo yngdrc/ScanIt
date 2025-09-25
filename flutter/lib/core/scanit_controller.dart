@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:scanit/core/detection_mode.dart';
+import 'package:scanit/core/processing/scanit_processor_event.dart';
 import 'package:scanit/core/scanit_controller_state.dart';
 import 'package:scanit/core/utils/scanit_utils.dart';
 
@@ -17,23 +18,20 @@ import 'processing/scanit_processor.dart';
 
 class ScanItController extends ValueNotifier<ScanItControllerState> {
   ScanItController({DetectionMode initialDetectionMode = DetectionMode.barcode})
-    : super(ScanItControllerState(detectionMode: initialDetectionMode));
+    : _scanItProcessor = ScanItProcessor.factoryConstructor(
+        detectionMode: initialDetectionMode,
+      ),
+      super(
+        ScanItControllerState(
+          cameraController: null,
+          detectionMode: initialDetectionMode,
+        ),
+      );
 
-  final ScanItProcessor _scanItProcessor = ScanItProcessor();
-  CancelableOperation<void>? _processingOperation;
+  final ScanItProcessor _scanItProcessor;
   ListenableSubscription? _cameraControllerSubscription;
 
-  final StreamController<BarcodesDetectedEvent>
-  _barcodeDetectedEventsController = StreamController.broadcast();
-
-  final StreamController<TextRecognizedEvent> _textRecognizedEventsController =
-      StreamController.broadcast();
-
-  Stream<BarcodesDetectedEvent> get barcodesStream =>
-      _barcodeDetectedEventsController.stream;
-
-  Stream<TextRecognizedEvent> get ocrStream =>
-      _textRecognizedEventsController.stream;
+  Stream<ScanItProcessorEvent> get eventStream => _scanItProcessor.eventStream;
 
   Future<Result<void>> initialize({
     CameraLensDirection? cameraLensDirection,
@@ -96,11 +94,11 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
     return Result.capture(imageStreamFuture);
   }
 
-  Future<void> _processCameraImage({
+  void _processCameraImage({
     required CameraImage cameraImage,
     required CameraLensDirection cameraLensDirection,
     required DeviceOrientation deviceOrientation,
-  }) async {
+  }) {
     final scanArea = value.scanArea;
     final widgetSize = value.widgetSize;
     final inputImageRotation = value.inputImageRotation;
@@ -108,100 +106,18 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
       return;
     }
 
-    final imageBounds = Rect.fromLTWH(
-      0,
-      0,
-      cameraImage.width.toDouble(),
-      cameraImage.height.toDouble(),
+    _scanItProcessor.processCameraImage(
+      cameraImage: cameraImage,
+      scanArea: scanArea,
+      inputImageRotation: inputImageRotation,
+      cameraLensDirection: cameraLensDirection,
+      widgetSize: widgetSize,
+      deviceOrientation: deviceOrientation,
     );
-
-    final scale = imageBounds.longestSide / widgetSize.longestSide;
-    final scaledBounds = Rect.fromCenter(
-      center: imageBounds.center,
-      width: widgetSize.width * scale,
-      height: widgetSize.height * scale,
-    ).rotateBy(angle: -inputImageRotation.rawValue);
-
-    final calculatedScanArea =
-        Rect.fromLTWH(
-          scanArea.left * scale,
-          scanArea.top * scale,
-          scanArea.width * scale,
-          scanArea.height * scale,
-        ).transform((rect) {
-          final newRect = switch (inputImageRotation) {
-            InputImageRotation.rotation0deg => rect.shift(scaledBounds.topLeft),
-            InputImageRotation.rotation90deg =>
-              rect
-                  .shift(scaledBounds.bottomLeft)
-                  .rotateBy(
-                    angle: -inputImageRotation.rawValue,
-                    anchor: scaledBounds.bottomLeft,
-                  ),
-            InputImageRotation.rotation180deg =>
-              rect
-                  .shift(scaledBounds.bottomRight)
-                  .rotateBy(
-                    angle: inputImageRotation.rawValue,
-                    anchor: scaledBounds.bottomRight,
-                  ),
-            InputImageRotation.rotation270deg =>
-              rect
-                  .shift(scaledBounds.topRight)
-                  .rotateBy(
-                    angle: inputImageRotation.rawValue,
-                    anchor: scaledBounds.topRight,
-                  ),
-          };
-
-          return newRect;
-        });
-
-    final future = _scanItProcessor
-        .processCameraImage(
-          cameraImage: cameraImage,
-          detectionMode: value.detectionMode,
-          scanArea: calculatedScanArea,
-          inputImageRotation: inputImageRotation,
-          cameraLensDirection: cameraLensDirection,
-          scale: scale,
-        )
-        .then((event) {
-          if (event == null) return;
-          _handleProcessorEvent(event: event);
-        });
-
-    _processingOperation = CancelableOperation.fromFuture(future);
   }
 
   Future<void> processImageFile({required FilePickerResult result}) async {
-    final scanArea = value.scanArea;
-    final xFile = result.xFiles.firstOrNull;
-    if (xFile == null || scanArea == null) return;
-
-    await _cancelProcessing();
-    final future = _scanItProcessor
-        .processXFile(
-          xFile: xFile,
-          detectionMode: value.detectionMode,
-          scanArea: scanArea,
-          scale: 0,
-        )
-        .then((event) {
-          if (event == null) return;
-          _handleProcessorEvent(event: event);
-        });
-
-    _processingOperation = CancelableOperation.fromFuture(future);
-  }
-
-  void _handleProcessorEvent({required ScanItProcessorEvent event}) {
-    switch (event) {
-      case BarcodesDetectedEvent _:
-        return _barcodeDetectedEventsController.add(event);
-      case TextRecognizedEvent _:
-        return _textRecognizedEventsController.add(event);
-    }
+    // TODO
   }
 
   void onPreviewReady({
@@ -298,14 +214,11 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
     final stopImageStreamFuture =
         value.cameraController?.stopImageStream() ?? Future.value();
 
-    final stopProcessingFuture =
-        _processingOperation?.cancel().then((_) {
-          _processingOperation = null;
-        }) ??
-        Future.value();
-
     return Result.capture(stopImageStreamFuture).then((result) async {
-      final stopProcessingResult = await Result.capture(stopProcessingFuture);
+      final stopProcessingResult = await Result.capture(
+        _scanItProcessor.cancelProcessing(),
+      );
+
       return result.asError ?? stopProcessingResult;
     });
   }
@@ -328,8 +241,6 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
 
   @override
   void dispose() {
-    unawaited(_barcodeDetectedEventsController.close());
-    unawaited(_textRecognizedEventsController.close());
     unawaited(disposeCamera().then((_) => _scanItProcessor.dispose()));
     super.dispose();
   }
