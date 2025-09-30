@@ -21,114 +21,25 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
     : _scanItProcessor = ScanItProcessor.factoryConstructor(
         detectionMode: initialDetectionMode,
       ),
-      super(
-        ScanItControllerState(
-          cameraController: null,
-          detectionMode: initialDetectionMode,
-        ),
-      );
+      super(ScanItControllerState(detectionMode: initialDetectionMode));
 
+  CameraController? _cameraController;
   final ScanItProcessor _scanItProcessor;
-  ListenableSubscription? _cameraControllerSubscription;
+
+  // ListenableSubscription? _cameraControllerSubscription;
 
   Stream<ScanItProcessorEvent> get eventStream => _scanItProcessor.eventStream;
 
-  Future<Result<void>> initialize({
-    CameraLensDirection? cameraLensDirection,
-    bool autoStartScanning = true,
-  }) async {
-    final currentLensDirection =
-        value.cameraController?.description.lensDirection;
-
-    await disposeCamera();
-
-    final availableCamerasResult = await Result.capture(availableCameras());
-    if (availableCamerasResult.isError) return availableCamerasResult.asError!;
-
-    final cameras = availableCamerasResult.asValue!.value;
-    if (cameras.isEmpty) return Result.error("No available cameras found");
-    final cameraDescription = cameras.firstWhere(
-      (camera) =>
-          camera.lensDirection ==
-          (cameraLensDirection ??
-              currentLensDirection ??
-              CameraLensDirection.back),
-      orElse: () => cameras.first,
-    );
-
-    final CameraController cameraController = CameraController(
-      cameraDescription,
-      ResolutionPreset.high,
-      enableAudio: false,
-    );
-
-    value = value.copyWith(cameraController: cameraController);
-    _cameraControllerSubscription = cameraController.listen((cameraValue, _) {
-      notifyListeners();
-    });
-
-    final initializeCameraFuture = cameraController.initialize().then(
-      (_) => cameraController.setFlashMode(FlashMode.off),
-    );
-
-    return Result.capture(initializeCameraFuture).then((result) {
-      if (!autoStartScanning || result.isError) return result;
-      return startScanning();
-    });
-  }
-
-  Future<Result<void>> startScanning() {
-    final cameraController = value.cameraController;
-    if (cameraController == null) {
-      return Future.value(Result.error("Camera not initialized"));
-    }
-
-    final imageStreamFuture = cameraController.startImageStream((cameraImage) {
-      _processCameraImage(
-        cameraImage: cameraImage,
-        cameraLensDirection: cameraController.description.lensDirection,
-        deviceOrientation: cameraController.value.applicableOrientation,
-      );
-    });
-
-    return Result.capture(imageStreamFuture);
-  }
-
-  void _processCameraImage({
-    required CameraImage cameraImage,
-    required CameraLensDirection cameraLensDirection,
-    required DeviceOrientation deviceOrientation,
-  }) {
-    final scanArea = value.scanArea;
-    final widgetSize = value.widgetSize;
-    final inputImageRotation = value.inputImageRotation;
-    if (scanArea == null || widgetSize == null || inputImageRotation == null) {
-      return;
-    }
-
-    _scanItProcessor.processCameraImage(
-      cameraImage: cameraImage,
-      scanArea: scanArea,
-      inputImageRotation: inputImageRotation,
-      cameraLensDirection: cameraLensDirection,
-      widgetSize: widgetSize,
-      deviceOrientation: deviceOrientation,
-    );
-  }
-
-  Future<void> processImageFile({required FilePickerResult result}) async {
-    // TODO
-  }
-
-  void onPreviewReady({
-    required Rect scanArea,
+  void onCameraInitialized({
+    required Rect? scanArea,
     required Size widgetSize,
-    required Size previewSize,
-    required CameraDescription cameraDescription,
-    required DeviceOrientation deviceOrientation,
+    required CameraController cameraController,
   }) {
+    _cameraController = cameraController;
+    final cameraDescription = cameraController.description;
     final sensorOrientation = cameraDescription.sensorOrientation;
     final lensDirection = cameraDescription.lensDirection;
+    final deviceOrientation = cameraController.value.deviceOrientation;
 
     /**
      * get image rotation
@@ -165,14 +76,60 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
       );
     }
 
-    if (inputImageRotation == null) return;
-
     value = value.copyWith(
       scanArea: scanArea,
       widgetSize: widgetSize,
-      previewSize: previewSize,
       inputImageRotation: inputImageRotation,
     );
+
+    _startScanning();
+  }
+
+  void onCameraDisposed() {
+    _scanItProcessor.cancelProcessing().then((_) => _cameraController = null);
+  }
+
+  Future<Result<void>> _startScanning() {
+    final cameraController = _cameraController;
+    if (cameraController == null) {
+      return Future.value(Result.error("Camera not initialized"));
+    }
+
+    final imageStreamFuture = cameraController.startImageStream((cameraImage) {
+      _processCameraImage(
+        cameraImage: cameraImage,
+        cameraLensDirection: cameraController.description.lensDirection,
+        deviceOrientation: cameraController.value.applicableOrientation,
+      );
+    });
+
+    return Result.capture(imageStreamFuture);
+  }
+
+  void _processCameraImage({
+    required CameraImage cameraImage,
+    required CameraLensDirection cameraLensDirection,
+    required DeviceOrientation deviceOrientation,
+  }) {
+    final scanArea = value.scanArea;
+    final widgetSize = value.widgetSize;
+    final inputImageRotation = value.inputImageRotation;
+    if (widgetSize == null || inputImageRotation == null) {
+      return;
+    }
+
+    _scanItProcessor.processCameraImage(
+      cameraImage: cameraImage,
+      scanArea: scanArea ?? widgetSize.asBounds,
+      inputImageRotation: inputImageRotation,
+      cameraLensDirection: cameraLensDirection,
+      widgetSize: widgetSize,
+      deviceOrientation: deviceOrientation,
+    );
+  }
+
+  Future<void> processImageFile({required FilePickerResult result}) async {
+    // TODO
   }
 
   void setDetectionMode({required DetectionMode detectionMode}) {
@@ -181,7 +138,7 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
   }
 
   Future<Result<void>> toggleTorch() {
-    final cameraController = value.cameraController;
+    final cameraController = _cameraController;
     if (cameraController == null) {
       return Future.value(Result.error("Camera not initialized"));
     }
@@ -195,53 +152,30 @@ class ScanItController extends ValueNotifier<ScanItControllerState> {
     return Result.capture(cameraController.setFlashMode(newFlashMode));
   }
 
-  Future<Result<void>> switchCamera() {
-    final cameraController = value.cameraController;
-    if (cameraController == null) {
-      return Future.value(Result.error("Camera not initialized"));
-    }
-
-    final lensDirection = cameraController.value.description.lensDirection;
-    final cameraLensDirection = switch (lensDirection) {
-      CameraLensDirection.back => CameraLensDirection.front,
-      _ => CameraLensDirection.back,
-    };
-
-    return initialize(cameraLensDirection: cameraLensDirection);
-  }
-
-  Future<Result<void>> _cancelProcessing() async {
-    final stopImageStreamFuture =
-        value.cameraController?.stopImageStream() ?? Future.value();
-
-    return Result.capture(stopImageStreamFuture).then((result) async {
-      final stopProcessingResult = await Result.capture(
-        _scanItProcessor.cancelProcessing(),
-      );
-
-      return result.asError ?? stopProcessingResult;
-    });
-  }
-
-  Future<Result<void>> disposeCamera() {
-    final future = _cancelProcessing().then((_) async {
-      final currentCameraController = value.cameraController;
-      value = ScanItControllerState(
-        cameraController: null,
-        detectionMode: value.detectionMode,
-      );
-
-      await currentCameraController?.dispose();
-      _cameraControllerSubscription?.cancel();
-      _cameraControllerSubscription = null;
-    });
-
-    return Result.capture(future);
-  }
+  // Future<Result<void>> switchCamera() {
+  //   final cameraController = _cameraController;
+  //   if (cameraController == null) {
+  //     return Future.value(Result.error("Camera not initialized"));
+  //   }
+  //
+  //   final cameraDescription = cameraController.description;
+  //   final lensDirection = cameraDescription.lensDirection;
+  //   final cameraLensDirection = switch (lensDirection) {
+  //     CameraLensDirection.back => CameraLensDirection.front,
+  //     _ => CameraLensDirection.back,
+  //   };
+  //
+  //   return Result.capture(cameraController.setDescription(cameraDescription));
+  //   // return initialize(cameraLensDirection: cameraLensDirection);
+  // }
 
   @override
   void dispose() {
-    unawaited(disposeCamera().then((_) => _scanItProcessor.dispose()));
+    unawaited(
+      _scanItProcessor.cancelProcessing().then(
+        (_) => _scanItProcessor.dispose(),
+      ),
+    );
     super.dispose();
   }
 }

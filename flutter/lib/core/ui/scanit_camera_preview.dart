@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:async/async.dart';
 import 'package:camera/camera.dart';
 import 'package:command_it/command_it.dart';
 import 'package:flutter/foundation.dart';
@@ -10,26 +12,20 @@ import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:nil/nil.dart';
 import 'package:scanit/core/utils/scanit_utils.dart';
 
-typedef OnPreviewReady =
-    void Function({
-      required Size widgetSize,
-      required Size previewSize,
-      required CameraDescription cameraDescription,
-      required DeviceOrientation deviceOrientation,
-    });
-
 class ScanItCameraPreview extends StatefulWidget {
   const ScanItCameraPreview({
     super.key,
-    required this.cameraController,
-    required this.constraints,
-    this.onPreviewReady,
+    required this.onCameraInitialized,
+    required this.onCameraError,
+    required this.onCameraDisposed,
+    this.cameraLensDirection = CameraLensDirection.back,
     this.child,
   });
 
-  final CameraController cameraController;
-  final BoxConstraints constraints;
-  final OnPreviewReady? onPreviewReady;
+  final Function(CameraController) onCameraInitialized;
+  final Function(ErrorResult) onCameraError;
+  final VoidCallback onCameraDisposed;
+  final CameraLensDirection cameraLensDirection;
   final Widget? child;
 
   @override
@@ -38,63 +34,101 @@ class ScanItCameraPreview extends StatefulWidget {
 
 class _ScanItCameraPreviewState extends State<ScanItCameraPreview>
     with WidgetsBindingObserver {
-  ValueListenable<(Size?, DeviceOrientation)> get _previewReadyListenable =>
-      widget.cameraController.valueListenableCombiner(
-        (cameraValue) =>
-            (cameraValue.previewSize, cameraValue.deviceOrientation),
-      );
-
-  ListenableSubscription? _previewReadySubscription;
+  CameraController? _cameraController;
 
   @override
   void initState() {
     super.initState();
-    _setupListeners();
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(_initialize(cameraLensDirection: widget.cameraLensDirection));
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    switch (state) {
-      case AppLifecycleState.detached:
-      case AppLifecycleState.hidden:
-      case AppLifecycleState.paused:
-        return;
-      case AppLifecycleState.inactive:
-        _disposeListeners();
-      case AppLifecycleState.resumed:
-        _setupListeners();
+    if (state == AppLifecycleState.inactive) {
+      unawaited(_disposeCamera());
+    } else if (state == AppLifecycleState.resumed) {
+      unawaited(_initialize());
     }
   }
 
   @override
   void dispose() {
-    _disposeListeners();
+    WidgetsBinding.instance.removeObserver(this);
+    unawaited(_disposeCamera());
     super.dispose();
   }
 
-  void _setupListeners() {
-    _previewReadySubscription = _previewReadyListenable.listen((data, _) {
-      final (previewSize, deviceOrientation) = data;
-      if (previewSize == null) return;
+  Future<void> _initialize({CameraLensDirection? cameraLensDirection}) async {
+    final currentLensDirection = _cameraController?.description.lensDirection;
+    await _disposeCamera();
 
-      widget.onPreviewReady?.call(
-        widgetSize: widget.constraints.biggest,
-        previewSize: previewSize,
-        cameraDescription: widget.cameraController.description,
-        deviceOrientation: deviceOrientation,
-      );
+    final availableCamerasResult = await Result.capture(availableCameras());
+    if (availableCamerasResult.isError) {
+      return widget.onCameraError(availableCamerasResult.asError!);
+    }
+
+    final cameras = availableCamerasResult.asValue!.value;
+    if (cameras.isEmpty) {
+      return widget.onCameraError(ErrorResult("No available cameras found"));
+    }
+
+    final cameraDescription = cameras.firstWhere(
+      (camera) =>
+          camera.lensDirection ==
+          (cameraLensDirection ??
+              currentLensDirection ??
+              CameraLensDirection.back),
+      orElse: () => cameras.first,
+    );
+
+    final CameraController cameraController = CameraController(
+      cameraDescription,
+      ResolutionPreset.high,
+      enableAudio: false,
+    );
+
+    setState(() {
+      _cameraController = cameraController;
+    });
+
+    final initializeCameraFuture = cameraController.initialize().then(
+      (_) => cameraController.setFlashMode(FlashMode.off),
+    );
+
+    await Result.capture(initializeCameraFuture).then((result) {
+      if (result.isError) return widget.onCameraError(result.asError!);
+      widget.onCameraInitialized(cameraController);
     });
   }
 
-  void _disposeListeners() {
-    _previewReadySubscription?.cancel();
-    _previewReadySubscription = null;
+  Future<void> _disposeCamera() async {
+    final cameraController = _cameraController;
+    if (cameraController == null || !cameraController.value.isInitialized) {
+      return;
+    }
+
+    final future = cameraController.stopImageStream().then((_) {
+      setState(() {
+        _cameraController = null;
+      });
+
+      cameraController.dispose();
+    });
+
+    await Result.capture(future).then((result) {
+      if (result.isError) return widget.onCameraError(result.asError!);
+      widget.onCameraDisposed();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final cameraController = _cameraController;
+    if (cameraController == null) return Nil();
+
     return ValueListenableBuilder<CameraValue>(
-      valueListenable: widget.cameraController,
+      valueListenable: cameraController,
       builder: (context, cameraValue, child) {
         if (!cameraValue.isInitialized) {
           return const Center(child: CircularProgressIndicator());
@@ -107,27 +141,31 @@ class _ScanItCameraPreviewState extends State<ScanItCameraPreview>
             ? previewSize.aspectRatio
             : (1 / previewSize.aspectRatio);
 
-        final scale =
-            max(widget.constraints.biggest.aspectRatio, aspectRatio) /
-            min(widget.constraints.biggest.aspectRatio, aspectRatio);
+        return LayoutBuilder(
+          builder: (_, constraints) {
+            final scale =
+                max(constraints.biggest.aspectRatio, aspectRatio) /
+                min(constraints.biggest.aspectRatio, aspectRatio);
 
-        return Transform.scale(
-          scale: scale,
-          child: Center(
-            child: AspectRatio(
-              aspectRatio: aspectRatio,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  _wrapInRotatedBox(
-                    cameraValue: cameraValue,
-                    child: widget.cameraController.buildPreview(),
+            return Transform.scale(
+              scale: scale,
+              child: Center(
+                child: AspectRatio(
+                  aspectRatio: aspectRatio,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      _wrapInRotatedBox(
+                        cameraValue: cameraValue,
+                        child: cameraController.buildPreview(),
+                      ),
+                      ?child,
+                    ],
                   ),
-                  ?child,
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
       child: widget.child,

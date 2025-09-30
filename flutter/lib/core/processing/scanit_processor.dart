@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:async/async.dart';
@@ -67,7 +68,7 @@ abstract class ScanItProcessor<TEvent extends ScanItProcessorEvent> {
       center: imageSize.center(Offset.zero),
       width: widgetSize.width * scale,
       height: widgetSize.height * scale,
-    ).rotateBy(angle: -inputImageRotation.rawValue);
+    ).rotateBy(angle: Platform.isIOS ? 0 : -inputImageRotation.rawValue);
 
     final scaledScanArea = Rect.fromLTWH(
       scanArea.left * scale,
@@ -75,6 +76,10 @@ abstract class ScanItProcessor<TEvent extends ScanItProcessorEvent> {
       scanArea.width * scale,
       scanArea.height * scale,
     );
+
+    if (Platform.isIOS) {
+      return scaledScanArea.shift(scaledBounds.topLeft);
+    }
 
     return switch (inputImageRotation) {
       InputImageRotation.rotation0deg => scaledScanArea.shift(

@@ -9,6 +9,7 @@ import 'package:scanit/utils/theme_utils.dart';
 
 import 'data/services/database_service.dart';
 
+// TODO: remove portraitDown for iPhones
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const ScanItApp());

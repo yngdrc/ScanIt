@@ -5,6 +5,9 @@ import 'dart:ui';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 
+import 'coordinates_translator_android.dart';
+import 'coordinates_translator_ios.dart';
+
 double translateX({
   required double x,
   required Size widgetSize,
@@ -14,25 +17,27 @@ double translateX({
   required CameraLensDirection cameraLensDirection,
   required Rect scanArea,
 }) {
-  switch (inputImageRotation) {
-    case InputImageRotation.rotation90deg:
-    case InputImageRotation.rotation270deg:
-      final scale = Size(
-        canvasSize.width,
-        Platform.isIOS ? imageSize.width : imageSize.height,
-      ).aspectRatio;
-
-      return (scanArea.top + x) * scale;
-    case InputImageRotation.rotation0deg:
-    case InputImageRotation.rotation180deg:
-      final scale = canvasSize.width / imageSize.width;
-      switch (cameraLensDirection) {
-        case CameraLensDirection.back:
-          return (scanArea.left + x)  * scale;
-        default:
-          return (scanArea.left + canvasSize.width - x) * scale;
-      }
+  if (Platform.isIOS) {
+    return translateXIos(
+      x: x,
+      widgetSize: widgetSize,
+      canvasSize: canvasSize,
+      imageSize: imageSize,
+      inputImageRotation: inputImageRotation,
+      cameraLensDirection: cameraLensDirection,
+      scanArea: scanArea,
+    );
   }
+
+  return translateXAndroid(
+    x: x,
+    widgetSize: widgetSize,
+    canvasSize: canvasSize,
+    imageSize: imageSize,
+    inputImageRotation: inputImageRotation,
+    cameraLensDirection: cameraLensDirection,
+    scanArea: scanArea,
+  );
 }
 
 double translateY({
@@ -43,14 +48,23 @@ double translateY({
   required CameraLensDirection cameraLensDirection,
   required Rect scanArea,
 }) {
-  switch (inputImageRotation) {
-    case InputImageRotation.rotation90deg:
-    case InputImageRotation.rotation270deg:
-      return (scanArea.left + y) *
-          canvasSize.height /
-          (Platform.isIOS ? imageSize.height : imageSize.width);
-    case InputImageRotation.rotation0deg:
-    case InputImageRotation.rotation180deg:
-      return (scanArea.top + y) * canvasSize.height / imageSize.height;
+  if (Platform.isIOS) {
+    return translateYIos(
+      y: y,
+      canvasSize: canvasSize,
+      imageSize: imageSize,
+      inputImageRotation: inputImageRotation,
+      cameraLensDirection: cameraLensDirection,
+      scanArea: scanArea,
+    );
   }
+
+  return translateYAndroid(
+    y: y,
+    canvasSize: canvasSize,
+    imageSize: imageSize,
+    inputImageRotation: inputImageRotation,
+    cameraLensDirection: cameraLensDirection,
+    scanArea: scanArea,
+  );
 }

@@ -100,17 +100,6 @@ extension DeviceOrientationExtension on DeviceOrientation {
   }
 }
 
-extension CameraControllerExtension on CameraController {
-  ValueListenable<(TIn1, TIn2)> valueListenableCombiner<TIn1, TIn2>(
-    (TIn1, TIn2) Function(CameraValue) combiner,
-  ) {
-    final in1 = select((cameraValue) => combiner(cameraValue).$1);
-    final in2 = select((cameraValue) => combiner(cameraValue).$2);
-
-    return in1.combineLatest(in2, (i1, i2) => (i1, i2));
-  }
-}
-
 extension SizeExtension on Size {
   Rect get asBounds {
     return Rect.fromLTWH(0, 0, width, height);
@@ -120,5 +109,12 @@ extension SizeExtension on Size {
 extension CameraImageExtension on CameraImage {
   Size get size {
     return Size(width.toDouble(), height.toDouble());
+  }
+}
+
+extension ObjectExtension on Object? {
+  T? castOrNull<T>() {
+    if (this is T) return this as T;
+    return null;
   }
 }

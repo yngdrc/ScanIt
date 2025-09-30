@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -8,43 +9,32 @@ import 'package:nil/nil.dart';
 import 'package:scanit/core/processing/scanit_processor_event.dart';
 import 'package:scanit/core/scanit_controller.dart';
 import 'package:scanit/core/ui/scanit_camera_preview.dart';
+import 'package:scanit/core/utils/scanit_utils.dart';
 
 import '../processing/scanit_processor.dart';
 import '../scanit_controller_state.dart';
-
-/// A function that initializes the scanning area based on the size of the widget.
-/// The function takes the size of the widget as a parameter and returns a [Rect]
-typedef ScanAreaInitializer = Rect Function({required Size widgetSize});
-
-typedef OnBarcodesDetected =
-    void Function({required BarcodesDetectedEvent event});
-
-typedef OnTextDetected = void Function({required TextRecognizedEvent event});
-
-typedef OverlayBuilder =
-    Widget? Function({
-      required BuildContext context,
-      required BoxConstraints constraints,
-      required ScanItControllerState scannerState,
-    });
+import '../utils/scanit_utils.dart';
 
 class ScanItWidget extends StatefulWidget {
   ScanItWidget({
     super.key,
     ScanItController? controller,
-    this.scanAreaInitializer,
+    this.onInitializeScanArea,
     this.overlayBuilder,
-    this.child,
     this.onBarcodesDetected,
     this.onTextDetected,
-  }) : controller = controller ?? ScanItController();
+    this.child,
+  }) : _controller = controller ?? ScanItController();
 
-  final ScanItController controller;
-  final ScanAreaInitializer? scanAreaInitializer;
-  final OverlayBuilder? overlayBuilder;
+  final ScanItController _controller;
+  final Rect Function({required Size widgetSize})? onInitializeScanArea;
+  final Function({required Rect scanArea})? overlayBuilder;
+
+  final void Function({required BarcodesDetectedEvent event})?
+  onBarcodesDetected;
+
+  final void Function({required TextRecognizedEvent event})? onTextDetected;
   final Widget? child;
-  final OnBarcodesDetected? onBarcodesDetected;
-  final OnTextDetected? onTextDetected;
 
   @override
   State<StatefulWidget> createState() => _ScanItWidgetState();
@@ -59,95 +49,82 @@ class _ScanItWidgetState extends State<ScanItWidget>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _setupListeners();
-    unawaited(widget.controller.initialize());
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.inactive) {
-      _disposeListeners();
-
-      if (!widget.controller.value.isCameraControllerInitialized) return;
-      unawaited(widget.controller.disposeCamera());
+      _removeListeners();
     } else if (state == AppLifecycleState.resumed) {
       _setupListeners();
-      unawaited(widget.controller.initialize());
     }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _disposeListeners();
-    widget.controller.dispose();
+    _removeListeners();
+    widget._controller.dispose();
     super.dispose();
   }
 
   void _setupListeners() {
-    _eventSubscription = widget.controller.eventStream.listen(
+    _eventSubscription = widget._controller.eventStream.listen(
       (event) => switch (event) {
-        BarcodesDetectedEvent() => widget.onBarcodesDetected?.call(event: event),
+        BarcodesDetectedEvent() => widget.onBarcodesDetected?.call(
+          event: event,
+        ),
         TextRecognizedEvent() => widget.onTextDetected?.call(event: event),
       },
     );
   }
 
-  void _disposeListeners() {
+  void _removeListeners() {
     _eventSubscription?.cancel();
     _eventSubscription = null;
   }
 
-  /// Calls the [ScanAreaInitializer] (if provided) to get the scan area
-  /// and notifies the controller that the camera preview is ready.
-  /// The max bounds of the scan area is the size of the widget.
-  void _onPreviewReady({
+  void _onCameraInitialized({
     required Size widgetSize,
-    required Size previewSize,
-    required CameraDescription cameraDescription,
-    required DeviceOrientation deviceOrientation,
+    required CameraController cameraController,
   }) {
-    final bounds = Rect.fromLTWH(0, 0, widgetSize.width, widgetSize.height);
-    final scanArea = widget.scanAreaInitializer
-        ?.call(widgetSize: widgetSize)
-        .intersect(bounds);
-
-    widget.controller.onPreviewReady(
-      scanArea: scanArea ?? bounds,
+    Rect? scanArea = widget.onInitializeScanArea?.call(widgetSize: widgetSize);
+    widget._controller.onCameraInitialized(
+      scanArea: scanArea,
       widgetSize: widgetSize,
-      previewSize: previewSize,
-      cameraDescription: cameraDescription,
-      deviceOrientation: deviceOrientation,
+      cameraController: cameraController,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
-      valueListenable: widget.controller,
+      valueListenable: widget._controller,
       builder: (_, scannerState, child) {
-        final cameraController = scannerState.cameraController;
-        if (cameraController == null) return Nil();
+        final scanArea = scannerState.scanArea;
+        final overlay = scanArea != null
+            ? widget.overlayBuilder?.call(scanArea: scanArea)
+            : null;
 
-        return LayoutBuilder(
-          builder: (_, constraints) {
-            final Widget? overlay = widget.overlayBuilder?.call(
-              context: context,
-              constraints: constraints,
-              scannerState: scannerState,
-            );
-
-            return Stack(
-              children: [
-                ScanItCameraPreview(
-                  cameraController: cameraController,
-                  constraints: constraints,
-                  onPreviewReady: _onPreviewReady,
+        return Stack(
+          children: [
+            LayoutBuilder(
+              builder: (_, constraints) {
+                return ScanItCameraPreview(
+                  onCameraInitialized: (cameraController) {
+                    _onCameraInitialized.call(
+                      widgetSize: constraints.biggest,
+                      cameraController: cameraController,
+                    );
+                  },
+                  onCameraDisposed: widget._controller.onCameraDisposed,
+                  onCameraError: (error) {},
                   child: child,
-                ),
-                ?overlay,
-              ],
-            );
-          },
+                );
+              },
+            ),
+            ?overlay,
+          ],
         );
       },
       child: widget.child,

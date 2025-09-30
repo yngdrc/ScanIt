@@ -1,8 +1,10 @@
 import 'package:camera/camera.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 import 'package:scanit/core/utils/scanit_utils.dart';
 
+import '../../core/detection_mode.dart';
 import '../../core/processing/scanit_processor.dart';
 import '../../core/processing/scanit_processor_event.dart';
 import '../../core/scanit_controller.dart';
@@ -21,54 +23,30 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> {
   final ScanItController _scanItController = ScanItController();
   CustomPaint? _customPaint;
 
-  ScanAreaInitializer get _scanAreaInitializer =>
-      ({required Size widgetSize}) {
-        final scanAreaSize = widgetSize.shortestSide / 2;
-        return Rect.fromLTWH(100, 200, scanAreaSize, scanAreaSize);
-      };
+  Rect _initializeScanArea({required Size widgetSize}) {
+    final scanAreaSize = widgetSize.shortestSide / 2;
+    return Rect.fromLTWH(100, 200, scanAreaSize, scanAreaSize);
+  }
+
+  Widget _buildOverlay({required Rect scanArea}) {
+    return ScanItCameraOverlay(scanArea: scanArea);
+  }
 
   void _setCustomPaint({required ScanItProcessorEvent event}) {
     final painter = event.painter;
-    setState(() {
-      if (painter == null) {
-        _customPaint = null;
-      } else {
-        _customPaint = CustomPaint(painter: painter);
-      }
-    });
-  }
-
-  void _onFilePicked({required FilePickerResult result}) {
-    // TODO: Implement file picking handling
+    final customPaint = painter != null ? CustomPaint(painter: painter) : null;
+    setState(() => _customPaint = customPaint);
   }
 
   @override
   Widget build(BuildContext context) {
     return ScanItWidget(
       controller: _scanItController,
-      scanAreaInitializer: null,
+      onInitializeScanArea: _initializeScanArea,
       overlayBuilder: _buildOverlay,
       onBarcodesDetected: _setCustomPaint,
       onTextDetected: _setCustomPaint,
       child: _customPaint,
-    );
-  }
-
-  Widget? _buildOverlay({
-    required BuildContext context,
-    required BoxConstraints constraints,
-    required ScanItControllerState scannerState,
-  }) {
-    return CameraScannerOverlay(
-      scanArea: scannerState.scanArea,
-      constraints: constraints,
-      barcode: null,
-      detectionMode: scannerState.detectionMode,
-      isFlashlightOn: scannerState.flashMode == FlashMode.torch,
-      onDetectionModeSelected: _scanItController.setDetectionMode,
-      onFlashlightToggle: _scanItController.toggleTorch,
-      onCameraSwitch: _scanItController.switchCamera,
-      onFilePicked: _onFilePicked,
     );
   }
 }
