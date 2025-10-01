@@ -23,16 +23,16 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> {
   final ScanItController _scanItController = ScanItController();
   CustomPaint? _customPaint;
 
-  Rect _initializeScanArea({required Size widgetSize}) {
+  Rect _initializeScanArea(Size widgetSize) {
     final scanAreaSize = widgetSize.shortestSide / 2;
     return Rect.fromLTWH(100, 200, scanAreaSize, scanAreaSize);
   }
 
-  Widget _buildOverlay({required Rect scanArea}) {
+  Widget _buildOverlay(Rect scanArea) {
     return ScanItCameraOverlay(scanArea: scanArea);
   }
 
-  void _setCustomPaint({required ScanItProcessorEvent event}) {
+  void _setCustomPaint(ScanItProcessorEvent event) {
     final painter = event.painter;
     final customPaint = painter != null ? CustomPaint(painter: painter) : null;
     setState(() => _customPaint = customPaint);

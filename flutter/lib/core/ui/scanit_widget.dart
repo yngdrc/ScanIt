@@ -27,13 +27,10 @@ class ScanItWidget extends StatefulWidget {
   }) : _controller = controller ?? ScanItController();
 
   final ScanItController _controller;
-  final Rect Function({required Size widgetSize})? onInitializeScanArea;
-  final Function({required Rect scanArea})? overlayBuilder;
-
-  final void Function({required BarcodesDetectedEvent event})?
-  onBarcodesDetected;
-
-  final void Function({required TextRecognizedEvent event})? onTextDetected;
+  final Rect Function(Size widgetSize)? onInitializeScanArea;
+  final Function(Rect scanArea)? overlayBuilder;
+  final void Function(BarcodesDetectedEvent event)? onBarcodesDetected;
+  final void Function(TextRecognizedEvent event)? onTextDetected;
   final Widget? child;
 
   @override
@@ -71,10 +68,8 @@ class _ScanItWidgetState extends State<ScanItWidget>
   void _setupListeners() {
     _eventSubscription = widget._controller.eventStream.listen(
       (event) => switch (event) {
-        BarcodesDetectedEvent() => widget.onBarcodesDetected?.call(
-          event: event,
-        ),
-        TextRecognizedEvent() => widget.onTextDetected?.call(event: event),
+        BarcodesDetectedEvent() => widget.onBarcodesDetected?.call(event),
+        TextRecognizedEvent() => widget.onTextDetected?.call(event),
       },
     );
   }
@@ -84,50 +79,50 @@ class _ScanItWidgetState extends State<ScanItWidget>
     _eventSubscription = null;
   }
 
-  void _onCameraInitialized({
-    required Size widgetSize,
-    required CameraController cameraController,
-  }) {
-    Rect? scanArea = widget.onInitializeScanArea?.call(widgetSize: widgetSize);
+  void _onCameraInitialized(Size widgetSize) {
+    Rect? scanArea = widget.onInitializeScanArea?.call(widgetSize);
     widget._controller.onCameraInitialized(
       scanArea: scanArea,
       widgetSize: widgetSize,
-      cameraController: cameraController,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-      valueListenable: widget._controller,
-      builder: (_, scannerState, child) {
-        final scanArea = scannerState.scanArea;
-        final overlay = scanArea != null
-            ? widget.overlayBuilder?.call(scanArea: scanArea)
-            : null;
-
-        return Stack(
-          children: [
-            LayoutBuilder(
-              builder: (_, constraints) {
-                return ScanItCameraPreview(
-                  onCameraInitialized: (cameraController) {
-                    _onCameraInitialized.call(
-                      widgetSize: constraints.biggest,
-                      cameraController: cameraController,
+    return Stack(
+      children: [
+        LayoutBuilder(
+          builder: (_, constraints) {
+            return ScanItCameraPreview(
+              constraints: constraints,
+              onCameraImage:
+                  (cameraImage, cameraDescription, deviceOrientation) {
+                    widget._controller.onCameraImage(
+                      cameraImage: cameraImage,
+                      cameraDescription: cameraDescription,
+                      deviceOrientation: deviceOrientation,
                     );
                   },
-                  onCameraDisposed: widget._controller.onCameraDisposed,
-                  onCameraError: (error) {},
-                  child: child,
-                );
-              },
-            ),
-            ?overlay,
-          ],
-        );
-      },
-      child: widget.child,
+              onCameraInitialized: _onCameraInitialized,
+              onCameraDisposed: widget._controller.onCameraDisposed,
+              onCameraError: (error) {},
+              child: widget.child,
+            );
+          },
+        ),
+
+        ValueListenableBuilder(
+          valueListenable: widget._controller,
+          builder: (_, scannerState, child) {
+            final scanArea = scannerState.scanArea;
+            final overlay = scanArea != null
+                ? widget.overlayBuilder?.call(scanArea)
+                : null;
+
+            return overlay ?? Nil();
+          },
+        ),
+      ],
     );
   }
 }

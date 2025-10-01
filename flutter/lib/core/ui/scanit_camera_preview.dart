@@ -15,16 +15,22 @@ import 'package:scanit/core/utils/scanit_utils.dart';
 class ScanItCameraPreview extends StatefulWidget {
   const ScanItCameraPreview({
     super.key,
+    required this.constraints,
     required this.onCameraInitialized,
     required this.onCameraError,
     required this.onCameraDisposed,
+    required this.onCameraImage,
     this.cameraLensDirection = CameraLensDirection.back,
     this.child,
   });
 
-  final Function(CameraController) onCameraInitialized;
-  final Function(ErrorResult) onCameraError;
+  final BoxConstraints constraints;
+  final void Function(Size) onCameraInitialized;
+  final void Function(ErrorResult) onCameraError;
   final VoidCallback onCameraDisposed;
+  final void Function(CameraImage, CameraDescription, DeviceOrientation)
+  onCameraImage;
+
   final CameraLensDirection cameraLensDirection;
   final Widget? child;
 
@@ -92,13 +98,32 @@ class _ScanItCameraPreviewState extends State<ScanItCameraPreview>
       _cameraController = cameraController;
     });
 
-    final initializeCameraFuture = cameraController.initialize().then(
-      (_) => cameraController.setFlashMode(FlashMode.off),
-    );
+    // TODO catchError instead of result?
+    final initializeCameraFuture = cameraController
+        .initialize()
+        .then((_) => widget.onCameraInitialized(widget.constraints.biggest))
+        .then((_) => _startScanning());
 
-    await Result.capture(initializeCameraFuture).then((result) {
+    await Result.capture(initializeCameraFuture).then((result) async {
       if (result.isError) return widget.onCameraError(result.asError!);
-      widget.onCameraInitialized(cameraController);
+    });
+  }
+
+  Future<void> _startScanning() async {
+    final cameraController = _cameraController;
+    if (cameraController == null) {
+      return widget.onCameraError(ErrorResult("Camera not initialized"));
+    }
+
+    final imageStreamFuture = cameraController.startImageStream((cameraImage) {
+      final cameraDescription = cameraController.description;
+      final deviceOrientation = cameraController.value.applicableOrientation;
+
+      widget.onCameraImage(cameraImage, cameraDescription, deviceOrientation);
+    });
+
+    return Result.capture(imageStreamFuture).then((result) {
+      if (result.isError) return widget.onCameraError(result.asError!);
     });
   }
 
@@ -114,11 +139,11 @@ class _ScanItCameraPreviewState extends State<ScanItCameraPreview>
       });
 
       cameraController.dispose();
+      widget.onCameraDisposed();
     });
 
     await Result.capture(future).then((result) {
       if (result.isError) return widget.onCameraError(result.asError!);
-      widget.onCameraDisposed();
     });
   }
 
@@ -141,31 +166,27 @@ class _ScanItCameraPreviewState extends State<ScanItCameraPreview>
             ? previewSize.aspectRatio
             : (1 / previewSize.aspectRatio);
 
-        return LayoutBuilder(
-          builder: (_, constraints) {
-            final scale =
-                max(constraints.biggest.aspectRatio, aspectRatio) /
-                min(constraints.biggest.aspectRatio, aspectRatio);
+        final scale =
+            max(widget.constraints.biggest.aspectRatio, aspectRatio) /
+            min(widget.constraints.biggest.aspectRatio, aspectRatio);
 
-            return Transform.scale(
-              scale: scale,
-              child: Center(
-                child: AspectRatio(
-                  aspectRatio: aspectRatio,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      _wrapInRotatedBox(
-                        cameraValue: cameraValue,
-                        child: cameraController.buildPreview(),
-                      ),
-                      ?child,
-                    ],
+        return Transform.scale(
+          scale: scale,
+          child: Center(
+            child: AspectRatio(
+              aspectRatio: aspectRatio,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _wrapInRotatedBox(
+                    cameraValue: cameraValue,
+                    child: cameraController.buildPreview(),
                   ),
-                ),
+                  ?child,
+                ],
               ),
-            );
-          },
+            ),
+          ),
         );
       },
       child: widget.child,

@@ -38,8 +38,9 @@ abstract class ScanItProcessor<TEvent extends ScanItProcessorEvent> {
   CancelableOperation<void>? _processingOperation;
 
   bool get _isBusy {
-    return !(_processingOperation?.isCompleted ?? true) ||
-        !(_processingOperation?.isCanceled ?? true);
+    return _processingOperation != null &&
+        !_processingOperation!.isCompleted &&
+        !_processingOperation!.isCanceled;
   }
 
   final StreamController<TEvent> _eventController =
@@ -121,7 +122,7 @@ abstract class ScanItProcessor<TEvent extends ScanItProcessorEvent> {
     if (_isBusy) return;
 
     final future = Future.sync(() async {
-      scanArea = calculateScanArea(
+      final calculatedScanArea = calculateScanArea(
         imageSize: cameraImage.size,
         widgetSize: widgetSize,
         inputImageRotation: inputImageRotation,
@@ -129,7 +130,7 @@ abstract class ScanItProcessor<TEvent extends ScanItProcessorEvent> {
       );
 
       final inputImage = await cameraImage.inputImageFromBytes(
-        cropRect: scanArea,
+        cropRect: calculatedScanArea,
         rotation: inputImageRotation,
       );
 
@@ -144,11 +145,10 @@ abstract class ScanItProcessor<TEvent extends ScanItProcessorEvent> {
         lensDirection: cameraLensDirection,
         detectionMode: detectionMode,
         imageSize: cameraImage.size,
-        scanArea: scanArea,
+        scanArea: calculatedScanArea,
       );
 
       _eventController.add(event);
-      _processingOperation = null;
     });
 
     _processingOperation = CancelableOperation.fromFuture(future);
@@ -182,12 +182,8 @@ abstract class ScanItProcessor<TEvent extends ScanItProcessorEvent> {
   }
 
   Future<void> cancelProcessing() async {
-    final processingOperation = _processingOperation;
-    if (processingOperation == null) return;
-
-    await processingOperation.cancel().then((_) {
-      _processingOperation = null;
-    });
+    await _processingOperation?.cancel();
+    _processingOperation = null;
   }
 
   Future<void> dispose() async {
