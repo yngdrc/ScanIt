@@ -1,14 +1,8 @@
-import 'package:camera/camera.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:material_symbols_icons/material_symbols_icons.dart';
 import 'package:scanit/core/utils/scanit_utils.dart';
 
-import '../../core/detection_mode.dart';
-import '../../core/processing/scanit_processor.dart';
 import '../../core/processing/scanit_processor_event.dart';
 import '../../core/scanit_controller.dart';
-import '../../core/scanit_controller_state.dart';
 import '../../core/ui/scanit_widget.dart';
 import 'camera_scanner_overlay.dart';
 

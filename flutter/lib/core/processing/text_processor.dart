@@ -1,6 +1,5 @@
 import 'dart:ui';
 
-import 'package:async/async.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:scanit/core/processing/scanit_processor.dart';

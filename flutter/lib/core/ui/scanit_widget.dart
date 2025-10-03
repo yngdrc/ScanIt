@@ -1,19 +1,10 @@
 import 'dart:async';
-import 'dart:math';
 
-import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:google_mlkit_commons/google_mlkit_commons.dart';
-import 'package:nil/nil.dart';
 import 'package:scanit/core/processing/scanit_processor_event.dart';
 import 'package:scanit/core/scanit_controller.dart';
 import 'package:scanit/core/ui/scanit_camera_preview.dart';
-import 'package:scanit/core/utils/scanit_utils.dart';
 
-import '../processing/scanit_processor.dart';
-import '../scanit_controller_state.dart';
-import '../utils/scanit_utils.dart';
 
 class ScanItWidget extends StatefulWidget {
   ScanItWidget({
@@ -119,7 +110,7 @@ class _ScanItWidgetState extends State<ScanItWidget>
                 ? widget.overlayBuilder?.call(scanArea)
                 : null;
 
-            return overlay ?? Nil();
+            return overlay ?? Container();
           },
         ),
       ],

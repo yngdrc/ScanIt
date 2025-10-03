@@ -3,11 +3,9 @@ import 'dart:ui';
 import 'package:camera/camera.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:scanit/core/detection_mode.dart';
 import 'package:scanit/core/processing/scanit_processor.dart';
 import 'package:scanit/core/processing/scanit_processor_event.dart';
-import 'package:scanit/core/utils/scanit_utils.dart';
 
 class BarcodeProcessor extends ScanItProcessor<BarcodesDetectedEvent> {
   BarcodeProcessor() : super(DetectionMode.barcode);

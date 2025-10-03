@@ -1,15 +1,11 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math';
 
 import 'package:async/async.dart';
 import 'package:camera/camera.dart';
-import 'package:command_it/command_it.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_mlkit_commons/google_mlkit_commons.dart';
-import 'package:nil/nil.dart';
 import 'package:scanit/core/utils/scanit_utils.dart';
 
 class ScanItCameraPreview extends StatefulWidget {
@@ -150,7 +146,7 @@ class _ScanItCameraPreviewState extends State<ScanItCameraPreview>
   @override
   Widget build(BuildContext context) {
     final cameraController = _cameraController;
-    if (cameraController == null) return Nil();
+    if (cameraController == null) return Container();
 
     return ValueListenableBuilder<CameraValue>(
       valueListenable: cameraController,
@@ -160,7 +156,7 @@ class _ScanItCameraPreviewState extends State<ScanItCameraPreview>
         }
 
         final previewSize = cameraValue.previewSize;
-        if (previewSize == null) return Nil();
+        if (previewSize == null) return Container();
 
         final aspectRatio = cameraValue.isLandscape
             ? previewSize.aspectRatio

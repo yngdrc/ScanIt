@@ -1,16 +1,12 @@
 import 'dart:math';
 
 import 'package:camera/camera.dart';
-import 'package:command_it/command_it.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 import '../painters/barcode_detector_painter.dart';
 import '../painters/text_detector_painter.dart';
-import '../processing/scanit_processor.dart';
 import '../processing/scanit_processor_event.dart';
 
 extension ScanItProcessorEventExtension on ScanItProcessorEvent {

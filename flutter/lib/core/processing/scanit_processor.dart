@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math';
 
 import 'package:async/async.dart';
 import 'package:camera/camera.dart';

@@ -1,10 +1,7 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math';
 
-import 'package:async/async.dart';
 import 'package:camera/camera.dart';
-import 'package:command_it/command_it.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
